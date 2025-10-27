@@ -1,0 +1,9 @@
+PyQt5>=5.15
+Pillow>=9.5
+numpy>=1.24
+opencv-python>=4.7
+pyyaml>=6.0
+torch>=2.1
+torchvision>=0.17
+ultralytics>=8.0
+tqdm>=4.65
