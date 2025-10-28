@@ -3,10 +3,7 @@
 **YoloTagger** is a lightweight, desktop Python application for labeling images for object detection datasets.  
 It supports **JSON (raw), YOLO, and COCO** formats, allows **class management**, and can leverage **pretrained YOLO models** for automatic predictions.
 
-<video width="480" controls>
-  <source src="docs/demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+![Demo](docs/demo.gif)
 
 ---
 
@@ -28,7 +25,7 @@ It supports **JSON (raw), YOLO, and COCO** formats, allows **class management**,
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/YOLOTagger.git
+    git clone https://github.com/wojciechc1/YoloTagger.git
     cd YOLOTagger
     ```
 
