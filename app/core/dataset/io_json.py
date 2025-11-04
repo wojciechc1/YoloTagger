@@ -4,6 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 # --- Save labels to JSON ---
 def save_labels_json(all_labels, save_path):
     """
@@ -17,13 +18,15 @@ def save_labels_json(all_labels, save_path):
         cleaned = []
 
         for lbl in labels:
-            cleaned.append({
-                "id": lbl.get("id", -1),
-                "class": int(lbl.get("class", -1)),  # store class ID
-                "type": lbl.get("type", "rect"),
-                "coords": lbl.get("coords", []),
-                "img_size": lbl.get("img_size", [0, 0])
-            })
+            cleaned.append(
+                {
+                    "id": lbl.get("id", -1),
+                    "class": int(lbl.get("class", -1)),  # store class ID
+                    "type": lbl.get("type", "rect"),
+                    "coords": lbl.get("coords", []),
+                    "img_size": lbl.get("img_size", [0, 0]),
+                }
+            )
 
         clean_labels[filename] = cleaned
 
@@ -51,13 +54,15 @@ def load_labels_json(json_path, available_images):
         if filename in label_data:
             labels = []
             for lbl in label_data[filename]:
-                labels.append({
-                    "id": lbl.get("id", -1),
-                    "class": int(lbl.get("class", -1)),  # map as ID
-                    "type": lbl.get("type", "rect"),
-                    "coords": lbl.get("coords", []),
-                    "img_size": lbl.get("img_size", [0, 0])
-                })
+                labels.append(
+                    {
+                        "id": lbl.get("id", -1),
+                        "class": int(lbl.get("class", -1)),  # map as ID
+                        "type": lbl.get("type", "rect"),
+                        "coords": lbl.get("coords", []),
+                        "img_size": lbl.get("img_size", [0, 0]),
+                    }
+                )
             mapped_labels[img_path] = labels
 
     logger.info(f"Loaded JSON labels for {len(mapped_labels)} images from {json_path}")

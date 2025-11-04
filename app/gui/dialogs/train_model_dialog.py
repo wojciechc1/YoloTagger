@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QPushButton, QFileDialog, QLabel
 
+
 class YamlSelectDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -24,10 +25,7 @@ class YamlSelectDialog(QDialog):
 
     def choose_yaml(self):
         path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select YOLO Dataset YAML",
-            "",
-            "YAML Files (*.yaml *.yml)"
+            self, "Select YOLO Dataset YAML", "", "YAML Files (*.yaml *.yml)"
         )
         if path:
             self.selected_path = path

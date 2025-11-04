@@ -3,6 +3,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 logger = logging.getLogger(__name__)
 
+
 class SessionState(QObject):
     # --- Signals ---
     label_mode_changed = pyqtSignal(str)

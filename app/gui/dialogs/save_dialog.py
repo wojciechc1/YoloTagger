@@ -1,6 +1,14 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QRadioButton, QButtonGroup, QFileDialog, QDialogButtonBox
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QButtonGroup,
+    QFileDialog,
+    QDialogButtonBox,
 )
 
 

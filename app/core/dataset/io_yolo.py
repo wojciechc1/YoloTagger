@@ -5,6 +5,7 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+
 # --- Convert all rect labels to YOLO format ---
 def get_all_yolo_labels(files, labels):
     """
@@ -27,7 +28,9 @@ def get_all_yolo_labels(files, labels):
             y_center = (y1 + y2) / 2 / img_h
             width = abs(x2 - x1) / img_w
             height = abs(y2 - y1) / img_h
-            yolo_lines.append(f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}")
+            yolo_lines.append(
+                f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"
+            )
 
         all_labels[file_path] = yolo_lines
 
@@ -92,7 +95,9 @@ def save_yaml_yolo(current_item, unique_classes):
         return None
 
     yaml_path = os.path.join(current_item.dataset_dir, "data.yaml")
-    train_path = os.path.join(current_item.dataset_dir, "images/train").replace("\\", "/")
+    train_path = os.path.join(current_item.dataset_dir, "images/train").replace(
+        "\\", "/"
+    )
     val_path = os.path.join(current_item.dataset_dir, "images/val").replace("\\", "/")
     names_yaml = "\n  - ".join([name for key, name in sorted(unique_classes.items())])
 
@@ -131,13 +136,15 @@ def load_yolo_file_dict(txt_path, img_path, img_size=None):
             y1 = (y_center - h / 2) * img_h
             x2 = (x_center + w / 2) * img_w
             y2 = (y_center + h / 2) * img_h
-            labels.append({
-                "id": 0,
-                "class": class_id,
-                "type": "rect",
-                "coords": [(x1, y1), (x2, y2)],
-                "img_size": (img_w, img_h)
-            })
+            labels.append(
+                {
+                    "id": 0,
+                    "class": class_id,
+                    "type": "rect",
+                    "coords": [(x1, y1), (x2, y2)],
+                    "img_size": (img_w, img_h),
+                }
+            )
     return labels
 
 
@@ -150,7 +157,9 @@ def load_yolo_labels_auto(base_path, all_files, unique_classes=None):
 
     # find label folders
     label_dirs = []
-    if os.path.isdir(base_path) and any(f.lower().endswith(".txt") for f in os.listdir(base_path)):
+    if os.path.isdir(base_path) and any(
+        f.lower().endswith(".txt") for f in os.listdir(base_path)
+    ):
         label_dirs = [base_path]
     elif os.path.exists(os.path.join(base_path, "labels")):
         labels_root = os.path.join(base_path, "labels")
@@ -160,7 +169,9 @@ def load_yolo_labels_auto(base_path, all_files, unique_classes=None):
             label_dirs.append(train_dir)
         if os.path.exists(val_dir):
             label_dirs.append(val_dir)
-        if not label_dirs and any(f.lower().endswith(".txt") for f in os.listdir(labels_root)):
+        if not label_dirs and any(
+            f.lower().endswith(".txt") for f in os.listdir(labels_root)
+        ):
             label_dirs.append(labels_root)
 
     if not label_dirs:
@@ -187,5 +198,7 @@ def load_yolo_labels_auto(base_path, all_files, unique_classes=None):
         if labels:
             mapped_labels[img_path] = labels
 
-    logger.info(f"Loaded YOLO labels for {len(mapped_labels)} images from '{base_path}'")
+    logger.info(
+        f"Loaded YOLO labels for {len(mapped_labels)} images from '{base_path}'"
+    )
     return mapped_labels

@@ -1,6 +1,14 @@
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QRadioButton, QButtonGroup, QFileDialog, QDialogButtonBox
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QButtonGroup,
+    QFileDialog,
+    QDialogButtonBox,
 )
 
 
@@ -72,10 +80,7 @@ class LoadDialog(QDialog):
 
         else:  # raw format
             file_path, _ = QFileDialog.getOpenFileName(
-                self,
-                "Select Label File",
-                "",
-                "JSON or YAML Files (*.json *.yaml)"
+                self, "Select Label File", "", "JSON or YAML Files (*.json *.yaml)"
             )
             if file_path:
                 self.path_edit.setText(file_path)

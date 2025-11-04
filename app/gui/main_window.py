@@ -1,25 +1,32 @@
 # app/windows/main_window.py
 from PyQt5.QtWidgets import (
-    QMainWindow, QAction, QPushButton, QHBoxLayout, QFileDialog,
-    QMessageBox, QWidget, QVBoxLayout, QDialog, QShortcut
+    QMainWindow,
+    QAction,
+    QPushButton,
+    QHBoxLayout,
+    QFileDialog,
+    QMessageBox,
+    QWidget,
+    QVBoxLayout,
+    QDialog,
+    QShortcut,
 )
 from PyQt5.QtGui import QKeySequence
 import os
 
 # --- Core imports ---
-from app.core.dataset_manager.manager import DatasetManager
-from app.core.label_manager import LabelManager
+from app.core.dataset.dataset_service import DatasetService
+from app.core.label_service import LabelService
 from app.core.session_state import SessionState
 from app.core.session_controller import SessionController
-from app.core.model_manager.model_manager import ModelManager
-from app.core.class_color_manager import ClassColorManager
+from app.core.model.model_handler import ModelHandler
+from app.core.class_color_registry import ClassColorRegistry
 
 # --- GUI imports ---
 from app.gui.image_panel import ImagePanel
 from app.gui.dataset_panel import DatasetPanel
 from app.gui.class_panel import ClassPanel
 from app.gui.dialogs.save_dialog import SaveDialog
-from app.gui.dialogs.train_model_dialog import YamlSelectDialog
 from app.gui.dialogs.load_labels_dialog import LoadDialog
 from app.gui.dialogs.label_type_dialog import LabelTypeDialog
 
@@ -34,10 +41,10 @@ class MainWindow(QMainWindow):
 
         # --- Core session/state ---
         self.session = SessionState()
-        self.dataset_manager = DatasetManager()
-        self.label_manager = LabelManager()
-        self.model_manager = ModelManager()
-        self.color_manager = ClassColorManager()
+        self.dataset_manager = DatasetService()
+        self.label_manager = LabelService()
+        self.model_manager = ModelHandler()
+        self.color_manager = ClassColorRegistry()
 
         # --- Panels ---
         self.image_panel = ImagePanel(color_callback=self.color_manager.get_color)
@@ -46,23 +53,34 @@ class MainWindow(QMainWindow):
 
         # --- Controller ---
         self.session_controller = SessionController(
-            self.dataset_manager, self.label_manager,
-            self.model_manager, self.color_manager, self.session
+            self.dataset_manager,
+            self.label_manager,
+            self.model_manager,
+            self.color_manager,
+            self.session,
         )
 
         # --- Signal connections ---
         self.session.label_mode_changed.connect(self.on_label_mode_changed)
-        self.session_controller.datasetLoaded.connect(self.dataset_panel.refresh_file_list)
+        self.session_controller.datasetLoaded.connect(
+            self.dataset_panel.refresh_file_list
+        )
         self.session_controller.requestLabelMode.connect(self.show_label_type_dialog)
-        self.session_controller.requestLabelRefresh.connect(self.image_panel.update_labels)
-        self.session_controller.classesUpdated.connect(self.class_panel.refresh_classes_list)
+        self.session_controller.requestLabelRefresh.connect(
+            self.image_panel.update_labels
+        )
+        self.session_controller.classesUpdated.connect(
+            self.class_panel.refresh_classes_list
+        )
         self.session_controller.fileChanged.connect(self.image_panel.load_image)
         self.session_controller.saveCompleted.connect(self.on_save_completed)
 
         # --- Class panel events ---
         self.class_panel.addClassRequested.connect(self.session_controller.add_class)
         self.class_panel.editClassRequested.connect(self.session_controller.edit_class)
-        self.class_panel.removeClassRequested.connect(self.session_controller.remove_class)
+        self.class_panel.removeClassRequested.connect(
+            self.session_controller.remove_class
+        )
         self.class_panel.classSelected.connect(self.on_class_selected)
 
         # --- Label events ---
@@ -71,8 +89,12 @@ class MainWindow(QMainWindow):
         self.image_panel.labelChanged.connect(self.session_controller.update_label)
 
         # --- Keyboard shortcuts ---
-        QShortcut(QKeySequence("Right"), self).activated.connect(self.session_controller.show_next_file)
-        QShortcut(QKeySequence("Left"), self).activated.connect(self.session_controller.show_prev_file)
+        QShortcut(QKeySequence("Right"), self).activated.connect(
+            self.session_controller.show_next_file
+        )
+        QShortcut(QKeySequence("Left"), self).activated.connect(
+            self.session_controller.show_prev_file
+        )
         QShortcut(QKeySequence("R"), self).activated.connect(self.draw_label)
         QShortcut(QKeySequence("P"), self).activated.connect(self.draw_label)
 
@@ -87,7 +109,6 @@ class MainWindow(QMainWindow):
         edit_menu = menu.addMenu("Edit")
         tools_menu = menu.addMenu("Tools")
         view_menu = menu.addMenu("View")
-        help_menu = menu.addMenu("Help")
 
         # --- File menu ---
         open_file = QAction("Open File", self)
@@ -197,10 +218,7 @@ class MainWindow(QMainWindow):
     def on_select_model(self):
         # --- Open file dialog ---
         file_path, _ = QFileDialog.getOpenFileName(
-            None,
-            "Select YOLO Model (.pt)",
-            "",
-            "PyTorch Model (*.pt)"
+            None, "Select YOLO Model (.pt)", "", "PyTorch Model (*.pt)"
         )
         if not file_path:
             return  # user cancelled
@@ -231,8 +249,12 @@ class MainWindow(QMainWindow):
 
     def on_open_file_clicked(self):
         """Open a single image file."""
-        ext_filter = ' '.join(f'*{ext}' for ext in self.dataset_manager.get_extensions())
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", f"Images ({ext_filter});;All Files (*)")
+        ext_filter = " ".join(
+            f"*{ext}" for ext in self.dataset_manager.get_extensions()
+        )
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Open File", "", f"Images ({ext_filter});;All Files (*)"
+        )
         if file_path:
             self.session_controller.open_file(file_path)
 

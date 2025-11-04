@@ -1,18 +1,22 @@
 from PyQt5.QtWidgets import (
-    QApplication, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
-    QGraphicsRectItem, QGraphicsPolygonItem
+    QGraphicsView,
+    QGraphicsScene,
+    QGraphicsPixmapItem,
+    QGraphicsRectItem,
+    QGraphicsPolygonItem,
 )
 from PyQt5.QtGui import QPixmap, QPen, QBrush, QPolygonF, QColor
-from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSignal
+from PyQt5.QtCore import Qt, QRectF, pyqtSignal
 from app.items.annotator_items import RectItem, PolygonItem
 
 
 # --- ImagePanel: main annotation canvas ---
 class ImagePanel(QGraphicsView):
     """Interactive image view for drawing and editing annotations."""
-    labelAdded = pyqtSignal(str, int, str, list)   # file, class_id, type, coords
-    labelRemoved = pyqtSignal(str, int)            # file, label_id
-    labelChanged = pyqtSignal(str, int, list)      # file, label_id, coords
+
+    labelAdded = pyqtSignal(str, int, str, list)  # file, class_id, type, coords
+    labelRemoved = pyqtSignal(str, int)  # file, label_id
+    labelChanged = pyqtSignal(str, int, list)  # file, label_id, coords
 
     def __init__(self, color_callback):
         super().__init__()
@@ -40,7 +44,7 @@ class ImagePanel(QGraphicsView):
         self.crosshair_v = None
 
         self.setMouseTracking(True)
-        #self.setDragMode(QGraphicsView.ScrollHandDrag)
+        # self.setDragMode(QGraphicsView.ScrollHandDrag)
 
     # --- Image loading ---
     def load_image(self, file_path):
@@ -78,7 +82,6 @@ class ImagePanel(QGraphicsView):
         """Reset zoom to fit image."""
         self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
         self.current_zoom = 1.0
-
 
     # --- State reset ---
     def reset_drawing_state(self):
@@ -144,7 +147,9 @@ class ImagePanel(QGraphicsView):
             elif event.button() == Qt.RightButton and self.temp_polygon:
                 if len(self.polygon_points) > 2:
                     coords = [(p.x(), p.y()) for p in self.polygon_points]
-                    self.labelAdded.emit(self.current_file, self.selected_class, self.label_type, coords)
+                    self.labelAdded.emit(
+                        self.current_file, self.selected_class, self.label_type, coords
+                    )
                 self.scene.removeItem(self.temp_polygon)
                 self.temp_polygon = None
                 self.polygon_points.clear()
@@ -174,19 +179,29 @@ class ImagePanel(QGraphicsView):
                 self.temp_rect.setRect(rect)
 
             # Update polygon preview
-            elif self.label_type == "polygon" and self.temp_polygon and self.polygon_points:
+            elif (
+                self.label_type == "polygon"
+                and self.temp_polygon
+                and self.polygon_points
+            ):
                 preview_points = self.polygon_points + [pos]
                 self.temp_polygon.setPolygon(QPolygonF(preview_points))
         else:
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self.is_drawing and self.label_type == "rect" and self.selected_class is not None:
+        if (
+            self.is_drawing
+            and self.label_type == "rect"
+            and self.selected_class is not None
+        ):
             if event.button() == Qt.LeftButton:
                 pos = self.mapToScene(event.pos())
                 self.current_point_end = (pos.x(), pos.y())
                 coords = [self.current_point, self.current_point_end]
-                self.labelAdded.emit(self.current_file, self.selected_class, self.label_type, coords)
+                self.labelAdded.emit(
+                    self.current_file, self.selected_class, self.label_type, coords
+                )
                 self.scene.removeItem(self.temp_rect)
                 self.temp_rect = None
                 self.is_drawing = False
@@ -207,16 +222,24 @@ class ImagePanel(QGraphicsView):
         for label in labels:
             if label["type"] == "rect":
                 rect = RectItem(
-                    label["coords"], label["id"], label["class"],
-                    self.current_file, self.img_rect,
-                    self.on_label_change, get_color_callback=self.get_class_color
+                    label["coords"],
+                    label["id"],
+                    label["class"],
+                    self.current_file,
+                    self.img_rect,
+                    self.on_label_change,
+                    get_color_callback=self.get_class_color,
                 )
                 self.scene.addItem(rect)
             elif label["type"] == "polygon":
                 poly = PolygonItem(
-                    label["coords"], label["id"], label["class"],
-                    self.current_file, self.img_rect,
-                    self.on_label_change, get_color_callback=self.get_class_color
+                    label["coords"],
+                    label["id"],
+                    label["class"],
+                    self.current_file,
+                    self.img_rect,
+                    self.on_label_change,
+                    get_color_callback=self.get_class_color,
                 )
                 self.scene.addItem(poly)
 

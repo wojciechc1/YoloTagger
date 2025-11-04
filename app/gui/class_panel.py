@@ -1,6 +1,13 @@
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QLabel, QPushButton, QListWidget, QLineEdit, QWidget,
-    QHBoxLayout, QListWidgetItem, QDialog
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
+    QListWidget,
+    QLineEdit,
+    QWidget,
+    QHBoxLayout,
+    QListWidgetItem,
+    QDialog,
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 from app.gui.dialogs.edit_class_dialog import EditClassDialog
@@ -8,9 +15,10 @@ from app.gui.dialogs.edit_class_dialog import EditClassDialog
 
 class ClassPanel(QWidget):
     """Panel for managing object classes (add, edit, remove, select)."""
-    classSelected = pyqtSignal(object)              # emits selected class ID
-    addClassRequested = pyqtSignal(str)             # emits new class name
-    removeClassRequested = pyqtSignal(int)          # emits class ID to remove
+
+    classSelected = pyqtSignal(object)  # emits selected class ID
+    addClassRequested = pyqtSignal(str)  # emits new class name
+    removeClassRequested = pyqtSignal(int)  # emits class ID to remove
     editClassRequested = pyqtSignal(int, str, str)  # emits class ID, name, color
 
     def __init__(self, color_callback):

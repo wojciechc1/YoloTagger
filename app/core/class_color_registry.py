@@ -4,19 +4,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class ClassColorManager:
-    """Manages colors for classes, generates unique random colors if needed."""
+
+class ClassColorRegistry:
+    """Registry colors for classes, generates unique random colors if needed."""
 
     def __init__(self):
         self.colors = {}  # mapping: class_id -> QColor
 
     def _generate_color(self) -> QColor:
         """Generate a visually distinct, slightly darker color using HSL."""
-        h = random.randint(0, 359)
-        s = random.randint(180, 255)
-        l = random.randint(50, 120)
-        color = QColor.fromHsl(h, s, l)
-        logger.debug("Generated darker color HSL(%d,%d,%d): %s", h, s, l, color.name())
+        hue = random.randint(0, 359)
+        saturation = random.randint(180, 255)
+        lightness = random.randint(50, 120)
+        color = QColor.fromHsl(hue, saturation, lightness)
+        logger.debug(
+            "Generated darker color HSL(%d,%d,%d): %s",
+            hue,
+            saturation,
+            lightness,
+            color.name(),
+        )
         return color
 
     def set_color(self, class_id, color=None):

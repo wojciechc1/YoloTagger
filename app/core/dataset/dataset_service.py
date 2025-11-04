@@ -1,12 +1,18 @@
 import logging
-from app.core.dataset_manager.items import DatasetItem, FolderItem, FileItem
-from app.core.dataset_manager.io_json import load_labels_json, save_labels_json
-from app.core.dataset_manager.io_yolo import get_all_yolo_labels, save_yaml_yolo, save_all_yolo, load_yolo_labels_auto
-from app.core.dataset_manager.io_coco import save_all_coco, load_labels_coco
+from app.core.dataset.items import DatasetItem, FolderItem, FileItem
+from app.core.dataset.io_json import load_labels_json, save_labels_json
+from app.core.dataset.io_yolo import (
+    get_all_yolo_labels,
+    save_yaml_yolo,
+    save_all_yolo,
+    load_yolo_labels_auto,
+)
+from app.core.dataset.io_coco import save_all_coco, load_labels_coco
 
 logger = logging.getLogger(__name__)
 
-class DatasetManager:
+
+class DatasetService:
     def __init__(self):
         self.exts = (".jpg", ".jpeg", ".png")
         self.current_item = None  # FileItem, FolderItem or DatasetItem
@@ -51,11 +57,16 @@ class DatasetManager:
         all_yolo = get_all_yolo_labels(files, all_labels)
         save_all_yolo(self.current_item, all_yolo, save_folder)
         save_yaml_yolo(self.current_item, unique_classes)
-        logger.info("Saved YOLO labels and data.yaml to %s", save_folder or self.current_item.dataset_dir)
+        logger.info(
+            "Saved YOLO labels and data.yaml to %s",
+            save_folder or self.current_item.dataset_dir,
+        )
 
     def save_coco(self, all_labels, save_folder):
         save_all_coco(self.current_item, all_labels, save_folder)
-        logger.info("Saved COCO labels to %s", save_folder or self.current_item.dataset_dir)
+        logger.info(
+            "Saved COCO labels to %s", save_folder or self.current_item.dataset_dir
+        )
 
     # --- Get files list ---
     def get_all_files(self):
@@ -65,11 +76,19 @@ class DatasetManager:
 
         files = []
         if hasattr(self.current_item, "path"):  # single file
-            files.append({"path": self.current_item.path, "size": self.current_item.img_size, "type": "file"})
+            files.append(
+                {
+                    "path": self.current_item.path,
+                    "size": self.current_item.img_size,
+                    "type": "file",
+                }
+            )
         elif hasattr(self.current_item, "files"):  # folder
             for f in self.current_item.files:
                 files.append({"path": f.path, "size": f.img_size, "type": "folder"})
-        elif hasattr(self.current_item, "train") and hasattr(self.current_item, "val"):  # dataset
+        elif hasattr(self.current_item, "train") and hasattr(
+            self.current_item, "val"
+        ):  # dataset
             for f in self.current_item.train:
                 files.append({"path": f.path, "size": f.img_size, "type": "train"})
             for f in self.current_item.val:

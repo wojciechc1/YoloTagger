@@ -4,6 +4,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 
 logger = logging.getLogger(__name__)
 
+
 class SessionController(QObject):
     # --- Signals for GUI ---
     datasetLoaded = pyqtSignal(list)
@@ -15,7 +16,14 @@ class SessionController(QObject):
     requestLabelMode = pyqtSignal()
     requestLabelRefresh = pyqtSignal(list)
 
-    def __init__(self, dataset_manager, label_manager, model_manager, color_manager, session_state):
+    def __init__(
+        self,
+        dataset_manager,
+        label_manager,
+        model_manager,
+        color_manager,
+        session_state,
+    ):
         super().__init__()
         self.dataset_manager = dataset_manager
         self.label_manager = label_manager
@@ -46,7 +54,7 @@ class SessionController(QObject):
                 self.state.files,
                 self.label_manager.labels,
                 self.label_manager.get_unique_classes(),
-                self.state.save_path
+                self.state.save_path,
             )
             self.saveCompleted.emit(path)
             logger.info("Saved YOLO labels to %s", path)
@@ -72,7 +80,11 @@ class SessionController(QObject):
 
         self.label_manager.load_labels(mapped_labels)
         self.classesUpdated.emit(self.label_manager.get_unique_classes())
-        self.requestLabelRefresh.emit(self.label_manager.get_labels(self.state.files[self.state.current_index]["path"]))
+        self.requestLabelRefresh.emit(
+            self.label_manager.get_labels(
+                self.state.files[self.state.current_index]["path"]
+            )
+        )
         logger.info("Loaded labels for %d images", len(mapped_labels))
 
     # --- File navigation ---
@@ -113,10 +125,14 @@ class SessionController(QObject):
         self.label_manager.reset_labels()
 
         self.datasetLoaded.emit(self.state.files)
-        self.fileChanged.emit(self.state.files[0]['path'])
+        self.fileChanged.emit(self.state.files[0]["path"])
         self.requestLabelMode.emit()
         self.classesUpdated.emit(self.label_manager.get_unique_classes())
-        self.requestLabelRefresh.emit(self.label_manager.get_labels(self.state.files[self.state.current_index]["path"]))
+        self.requestLabelRefresh.emit(
+            self.label_manager.get_labels(
+                self.state.files[self.state.current_index]["path"]
+            )
+        )
         logger.info("Opened folder: %s, %d files loaded", folder, len(self.state.files))
 
     def open_dataset(self, folder):
@@ -126,11 +142,15 @@ class SessionController(QObject):
         self.label_manager.reset_labels()
 
         self.datasetLoaded.emit(self.state.files)
-        self.fileChanged.emit(self.state.files[0]['path'])
+        self.fileChanged.emit(self.state.files[0]["path"])
         self.requestLabelMode.emit()
         self.classesUpdated.emit(self.label_manager.get_unique_classes())
-        self.requestLabelRefresh.emit(self.label_manager.get_labels(self.state.files[0]["path"]))
-        logger.info("Opened dataset: %s, %d files loaded", folder, len(self.state.files))
+        self.requestLabelRefresh.emit(
+            self.label_manager.get_labels(self.state.files[0]["path"])
+        )
+        logger.info(
+            "Opened dataset: %s, %d files loaded", folder, len(self.state.files)
+        )
 
     # --- Class management ---
     def add_class(self, class_name):
@@ -141,7 +161,11 @@ class SessionController(QObject):
     def remove_class(self, class_id):
         self.label_manager.remove_unique_class(class_id)
         self.classesUpdated.emit(self.label_manager.get_unique_classes())
-        self.requestLabelRefresh.emit(self.label_manager.get_labels(self.state.files[self.state.current_index]["path"]))
+        self.requestLabelRefresh.emit(
+            self.label_manager.get_labels(
+                self.state.files[self.state.current_index]["path"]
+            )
+        )
         logger.info("Removed class id %d", class_id)
 
     def edit_class(self, class_id, new_class_name, color):
@@ -153,12 +177,22 @@ class SessionController(QObject):
     # --- Label management ---
     def add_label(self, file, class_name, label_type, coords):
         self.label_manager.add_label(file, class_name, label_type, coords)
-        self.requestLabelRefresh.emit(self.label_manager.get_labels(self.state.files[self.state.current_index]["path"]))
-        logger.info("Added label to file %s, class %s, type %s", file, class_name, label_type)
+        self.requestLabelRefresh.emit(
+            self.label_manager.get_labels(
+                self.state.files[self.state.current_index]["path"]
+            )
+        )
+        logger.info(
+            "Added label to file %s, class %s, type %s", file, class_name, label_type
+        )
 
     def remove_label(self, file, label_id):
         self.label_manager.remove_label(file, label_id)
-        self.requestLabelRefresh.emit(self.label_manager.get_labels(self.state.files[self.state.current_index]["path"]))
+        self.requestLabelRefresh.emit(
+            self.label_manager.get_labels(
+                self.state.files[self.state.current_index]["path"]
+            )
+        )
         logger.info("Removed label id %d from file %s", label_id, file)
 
     def update_label(self, file_path, label_id, coords):
@@ -183,7 +217,9 @@ class SessionController(QObject):
     def predict_image(self):
         image_path = self.state.files[self.state.current_index]["path"]
         predicted_labels = self.model_manager.predict(image_path)
-        logger.info("Predicted %d labels for image %s", len(predicted_labels), image_path)
+        logger.info(
+            "Predicted %d labels for image %s", len(predicted_labels), image_path
+        )
 
         for pred in predicted_labels:
             if "bbox" in pred:

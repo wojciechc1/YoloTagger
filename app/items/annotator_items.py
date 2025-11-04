@@ -1,5 +1,8 @@
 from PyQt5.QtWidgets import (
-    QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsItem, QGraphicsPolygonItem
+    QGraphicsRectItem,
+    QGraphicsEllipseItem,
+    QGraphicsItem,
+    QGraphicsPolygonItem,
 )
 from PyQt5.QtGui import QPen, QBrush, QPolygonF, QColor
 from PyQt5.QtCore import Qt, QRectF, pyqtSignal, QPointF
@@ -8,21 +11,27 @@ from PyQt5.QtCore import Qt, QRectF, pyqtSignal, QPointF
 # --- Handle (draggable corner/point) ---
 class Handle(QGraphicsEllipseItem):
     """Small draggable handle for resizing or shaping items."""
+
     moved = pyqtSignal()  # emitted when handle is moved
 
     def __init__(self, x, y, radius=5, class_color=Qt.blue, parent=None):
         self.base_radius = float(radius)
 
         # create ellipse centered at (0,0) in local coords
-        super().__init__(-self.base_radius, -self.base_radius,
-                         self.base_radius * 2, self.base_radius * 2, parent)
+        super().__init__(
+            -self.base_radius,
+            -self.base_radius,
+            self.base_radius * 2,
+            self.base_radius * 2,
+            parent,
+        )
         self.setPos(x, y)
         self.setBrush(QBrush(class_color))
         self.setPen(QPen(Qt.black))
         self.setFlags(
-            QGraphicsItem.ItemIsMovable |
-            QGraphicsItem.ItemSendsGeometryChanges |
-            QGraphicsItem.ItemIsSelectable
+            QGraphicsItem.ItemIsMovable
+            | QGraphicsItem.ItemSendsGeometryChanges
+            | QGraphicsItem.ItemIsSelectable
         )
 
     def itemChange(self, change, value):
@@ -31,8 +40,14 @@ class Handle(QGraphicsEllipseItem):
             if parent and hasattr(parent, "img_rect"):
                 # Keep handle inside image boundaries
                 new_scene_pos = parent.mapToScene(value)
-                x = max(parent.img_rect.left(), min(new_scene_pos.x(), parent.img_rect.right()))
-                y = max(parent.img_rect.top(), min(new_scene_pos.y(), parent.img_rect.bottom()))
+                x = max(
+                    parent.img_rect.left(),
+                    min(new_scene_pos.x(), parent.img_rect.right()),
+                )
+                y = max(
+                    parent.img_rect.top(),
+                    min(new_scene_pos.y(), parent.img_rect.bottom()),
+                )
                 value = parent.mapFromScene(QPointF(x, y))
 
             # Notify parent about movement
@@ -56,10 +71,20 @@ class Handle(QGraphicsEllipseItem):
 # --- RectItem (bounding box with 2 handles) ---
 class RectItem(QGraphicsRectItem):
     """Rectangle annotation with draggable handles."""
+
     updated = pyqtSignal(str, int, list)
 
-    def __init__(self, coords, label_id, class_id, file_path, img_rect,
-                 change_callback=None, get_color_callback=None, parent=None):
+    def __init__(
+        self,
+        coords,
+        label_id,
+        class_id,
+        file_path,
+        img_rect,
+        change_callback=None,
+        get_color_callback=None,
+        parent=None,
+    ):
         super().__init__(parent)
         self.label_id = label_id
         self.class_id = class_id
@@ -71,17 +96,21 @@ class RectItem(QGraphicsRectItem):
         self.setPen(QPen(Qt.red, 2))
         self.setBrush(QBrush(Qt.transparent))
         self.setFlags(
-            QGraphicsRectItem.ItemIsSelectable |
-            QGraphicsRectItem.ItemIsMovable |
-            QGraphicsRectItem.ItemSendsGeometryChanges
+            QGraphicsRectItem.ItemIsSelectable
+            | QGraphicsRectItem.ItemIsMovable
+            | QGraphicsRectItem.ItemSendsGeometryChanges
         )
         self.setAcceptHoverEvents(True)
 
         color = self.get_color_callback(self.class_id)
 
         # Create two handles
-        self.start_handle = Handle(coords[0][0], coords[0][1], class_color=color, parent=self)
-        self.end_handle = Handle(coords[1][0], coords[1][1], class_color=color, parent=self)
+        self.start_handle = Handle(
+            coords[0][0], coords[0][1], class_color=color, parent=self
+        )
+        self.end_handle = Handle(
+            coords[1][0], coords[1][1], class_color=color, parent=self
+        )
 
         self.update_rect()
 
@@ -89,7 +118,7 @@ class RectItem(QGraphicsRectItem):
         zoom = getattr(self.scene(), "zoom_factor", 1.0)
         base_color = self.get_color_callback(self.class_id)
         pen_color = QColor(Qt.yellow) if self.isSelected() else QColor(base_color)
-        pen = QPen(pen_color,  10 / zoom)
+        pen = QPen(pen_color, 10 / zoom)
 
         fill_color = QColor(base_color)
         fill_color.setAlpha(60)
@@ -113,7 +142,6 @@ class RectItem(QGraphicsRectItem):
         text_w = fm.horizontalAdvance(label) + 10 / zoom
         text_h = fm.height() + 6 / zoom
 
-
         bg_x = rect.center().x() - text_w / 2
         bg_y = rect.center().y() - text_h / 2
         bg_rect = QRectF(bg_x, bg_y, text_w, text_h)
@@ -125,14 +153,19 @@ class RectItem(QGraphicsRectItem):
         painter.setPen(Qt.white)
         painter.drawText(bg_rect, Qt.AlignCenter, label)
 
-
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange and isinstance(value, QPointF):
             img_rect = getattr(self, "img_rect", None)
             if img_rect:
                 rect = self.rect()
-                new_x = min(max(value.x(), img_rect.left() - rect.left()), img_rect.right() - rect.right())
-                new_y = min(max(value.y(), img_rect.top() - rect.top()), img_rect.bottom() - rect.bottom())
+                new_x = min(
+                    max(value.x(), img_rect.left() - rect.left()),
+                    img_rect.right() - rect.right(),
+                )
+                new_y = min(
+                    max(value.y(), img_rect.top() - rect.top()),
+                    img_rect.bottom() - rect.bottom(),
+                )
                 value = QPointF(new_x, new_y)
                 self.update_rect()
                 self.on_change()
@@ -162,8 +195,17 @@ class RectItem(QGraphicsRectItem):
 class PolygonItem(QGraphicsPolygonItem):
     """Polygon annotation with multiple draggable handles."""
 
-    def __init__(self, points, label_id, class_id, file_path, img_rect,
-                 change_callback=None, get_color_callback=None, parent=None):
+    def __init__(
+        self,
+        points,
+        label_id,
+        class_id,
+        file_path,
+        img_rect,
+        change_callback=None,
+        get_color_callback=None,
+        parent=None,
+    ):
         super().__init__(parent)
         self.label_id = label_id
         self.class_id = class_id
@@ -175,15 +217,17 @@ class PolygonItem(QGraphicsPolygonItem):
         self.setPen(QPen(Qt.red, 2))
         self.setBrush(QBrush(Qt.transparent))
         self.setFlags(
-            QGraphicsItem.ItemIsSelectable |
-            QGraphicsItem.ItemIsMovable |
-            QGraphicsItem.ItemSendsGeometryChanges
+            QGraphicsItem.ItemIsSelectable
+            | QGraphicsItem.ItemIsMovable
+            | QGraphicsItem.ItemSendsGeometryChanges
         )
         self.setAcceptHoverEvents(True)
 
         color = self.get_color(self.class_id)
         # Create handles for polygon points
-        self.handles = [Handle(pt[0], pt[1], class_color=color, parent=self) for pt in points]
+        self.handles = [
+            Handle(pt[0], pt[1], class_color=color, parent=self) for pt in points
+        ]
         self.update_polygon()
 
     def itemChange(self, change, value):
@@ -196,8 +240,12 @@ class PolygonItem(QGraphicsPolygonItem):
                 max_y = max(h.pos().y() for h in self.handles)
 
                 # Keep polygon within image bounds
-                new_x = min(max(value.x(), img_rect.left() - min_x), img_rect.right() - max_x)
-                new_y = min(max(value.y(), img_rect.top() - min_y), img_rect.bottom() - max_y)
+                new_x = min(
+                    max(value.x(), img_rect.left() - min_x), img_rect.right() - max_x
+                )
+                new_y = min(
+                    max(value.y(), img_rect.top() - min_y), img_rect.bottom() - max_y
+                )
                 value = QPointF(new_x, new_y)
                 self.on_change()
         return super().itemChange(change, value)
@@ -214,7 +262,10 @@ class PolygonItem(QGraphicsPolygonItem):
 
     def on_change(self):
         """Emit updated polygon coordinates."""
-        coords = [(self.mapToScene(h.pos()).x(), self.mapToScene(h.pos()).y()) for h in self.handles]
+        coords = [
+            (self.mapToScene(h.pos()).x(), self.mapToScene(h.pos()).y())
+            for h in self.handles
+        ]
         self.change_callback(self.file_path, self.label_id, coords)
 
     def paint(self, painter, option, widget=None):
@@ -257,4 +308,3 @@ class PolygonItem(QGraphicsPolygonItem):
 
         painter.setPen(Qt.white)
         painter.drawText(bg_rect, Qt.AlignCenter, label)
-

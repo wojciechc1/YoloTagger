@@ -1,5 +1,13 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QColorDialog, QLabel, \
-    QDialogButtonBox
+from PyQt5.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QPushButton,
+    QColorDialog,
+    QLabel,
+    QDialogButtonBox,
+)
 from PyQt5.QtGui import QColor
 
 

@@ -1,9 +1,9 @@
-import os
 import logging
 
 logger = logging.getLogger(__name__)
 
-class LabelManager:
+
+class LabelService:
     """Manages labels for images and tracks unique classes."""
 
     def __init__(self):
@@ -35,9 +35,17 @@ class LabelManager:
     def remove_label(self, img_path, label_id):
         self.ensure_entry(img_path)
         before = len(self.labels[img_path])
-        self.labels[img_path] = [l for l in self.labels[img_path] if l["id"] != label_id]
+        self.labels[img_path] = [
+            label for label in self.labels[img_path] if label["id"] != label_id
+        ]
         after = len(self.labels[img_path])
-        logger.info("Removed label %s from image %s (%d -> %d labels)", label_id, img_path, before, after)
+        logger.info(
+            "Removed label %s from image %s (%d -> %d labels)",
+            label_id,
+            img_path,
+            before,
+            after,
+        )
 
     def get_labels(self, img_path):
         self.ensure_entry(img_path)
@@ -82,12 +90,16 @@ class LabelManager:
             del self.unique_classes[class_id]
             logger.info("Removed unique class %d: %s", class_id, removed)
         for img_path, labels in self.labels.items():
-            self.labels[img_path] = [l for l in labels if l["class"] != class_id]
+            self.labels[img_path] = [
+                label for label in labels if label["class"] != class_id
+            ]
 
     # --- Loading / resetting ---
     def load_labels(self, mapped_labels):
         self.reset_labels()
-        class_names = sorted({l['class'] for labels in mapped_labels.values() for l in labels})
+        class_names = sorted(
+            {label["class"] for labels in mapped_labels.values() for label in labels}
+        )
         self.unique_classes = {i: name for i, name in enumerate(class_names)}
         self.next_class_id = len(self.unique_classes)
 
@@ -104,7 +116,7 @@ class LabelManager:
     # --- Helpers ---
     def get_next_id(self, img_path):
         labels_for_img = self.labels.get(img_path, [])
-        return max([l["id"] for l in labels_for_img], default=-1) + 1
+        return max([label["id"] for label in labels_for_img], default=-1) + 1
 
     def set_labels(self, img_path, label_data):
         self.labels[img_path] = label_data

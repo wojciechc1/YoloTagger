@@ -3,16 +3,18 @@ import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtCore import Qt
+
+
 from app.gui.main_window import MainWindow
 
 import logging
-import sys
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
-    stream=sys.stdout
+    format="%(asctime)s [%(levelname)s]" " [%(name)s] %(message)s",
+    stream=sys.stdout,
 )
+
 
 def main():
     """App entry point."""

@@ -1,15 +1,11 @@
-from PyQt5.QtWidgets import (
-    QVBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem, QWidget
-)
+from PyQt5.QtWidgets import QVBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem, QWidget
 from PyQt5.QtCore import pyqtSignal
 import os
-
-from app.gui.dialogs.save_dialog import SaveDialog
-from app.gui.dialogs.label_type_dialog import LabelTypeDialog
 
 
 class DatasetPanel(QWidget):
     """Displays dataset structure and allows file selection."""
+
     fileSelected = pyqtSignal(str)
 
     def __init__(self):

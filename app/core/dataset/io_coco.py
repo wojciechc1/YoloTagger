@@ -6,6 +6,7 @@ from .items import DatasetItem
 
 logger = logging.getLogger(__name__)
 
+
 # --- Save COCO labels ---
 def save_labels_coco(labels, files, save_path):
     """
@@ -24,12 +25,9 @@ def save_labels_coco(labels, files, save_path):
         filename = os.path.basename(file_path)
         img_w, img_h = img_sizes.get(file_path, (0, 0))
 
-        images.append({
-            "id": img_id,
-            "file_name": filename,
-            "width": img_w,
-            "height": img_h
-        })
+        images.append(
+            {"id": img_id, "file_name": filename, "width": img_w, "height": img_h}
+        )
 
         for label in img_labels:
             if "coords" not in label or not label["coords"]:
@@ -46,7 +44,7 @@ def save_labels_coco(labels, files, save_path):
                 "id": ann_id,
                 "image_id": img_id,
                 "category_id": class_id,
-                "iscrowd": 0
+                "iscrowd": 0,
             }
 
             if label["type"] == "rect":
@@ -74,7 +72,7 @@ def save_labels_coco(labels, files, save_path):
     coco_dict = {
         "images": images,
         "annotations": annotations,
-        "categories": list(categories.values())
+        "categories": list(categories.values()),
     }
 
     with open(save_path, "w", encoding="utf-8") as f:
@@ -102,10 +100,16 @@ def save_all_coco(current_item, all_labels, save_folder):
         train_files = [{"path": f.path, "size": f.img_size} for f in current_item.train]
         val_files = [{"path": f.path, "size": f.img_size} for f in current_item.val]
 
-        train_labels = {path: labels for path, labels in all_labels.items()
-                        if any(f["path"] == path for f in train_files)}
-        val_labels = {path: labels for path, labels in all_labels.items()
-                      if any(f["path"] == path for f in val_files)}
+        train_labels = {
+            path: labels
+            for path, labels in all_labels.items()
+            if any(f["path"] == path for f in train_files)
+        }
+        val_labels = {
+            path: labels
+            for path, labels in all_labels.items()
+            if any(f["path"] == path for f in val_files)
+        }
 
         if train_labels:
             save_labels_coco(train_labels, train_files, train_json)
@@ -115,13 +119,20 @@ def save_all_coco(current_item, all_labels, save_folder):
             saved_files.append(val_json)
 
         dataset_yaml = os.path.join(current_item.dataset_dir, "data.yaml")
-        all_classes = sorted({lbl["class"] for lbls in all_labels.values() for lbl in lbls if "class" in lbl})
+        all_classes = sorted(
+            {
+                lbl["class"]
+                for lbls in all_labels.values()
+                for lbl in lbls
+                if "class" in lbl
+            }
+        )
 
         yaml_data = {
             "train": os.path.join(current_item.dataset_dir, "images", "train"),
             "val": os.path.join(current_item.dataset_dir, "images", "val"),
             "nc": len(all_classes),
-            "names": all_classes
+            "names": all_classes,
         }
 
         with open(dataset_yaml, "w", encoding="utf-8") as f:
@@ -133,7 +144,10 @@ def save_all_coco(current_item, all_labels, save_folder):
     else:
         os.makedirs(save_folder, exist_ok=True)
         json_path = os.path.join(save_folder, "annotations.json")
-        files = [{"path": path, "size": lbls[0].get("img_size", (0, 0))} for path, lbls in all_labels.items()]
+        files = [
+            {"path": path, "size": lbls[0].get("img_size", (0, 0))}
+            for path, lbls in all_labels.items()
+        ]
 
         save_labels_coco(all_labels, files, json_path)
         saved_files.append(json_path)
@@ -186,8 +200,8 @@ def _map_coco_labels(coco_data, available_images):
     id_to_img = {img["id"]: img for img in coco_data.get("images", [])}
     valid_image_names = (
         {os.path.basename(p["path"]): p["path"] for p in available_images}
-        if available_images else
-        {img["file_name"]: img["file_name"] for img in coco_data.get("images", [])}
+        if available_images
+        else {img["file_name"]: img["file_name"] for img in coco_data.get("images", [])}
     )
 
     mapped_labels = {}
@@ -220,7 +234,7 @@ def _map_coco_labels(coco_data, available_images):
             "class": ann.get("category_id", -1),
             "type": label_type,
             "coords": coords,
-            "img_size": (width, height)
+            "img_size": (width, height),
         }
 
         mapped_labels.setdefault(img_path, []).append(label_dict)

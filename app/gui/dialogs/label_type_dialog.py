@@ -1,4 +1,12 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QRadioButton, QButtonGroup, QDialogButtonBox
+from PyQt5.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QLabel,
+    QRadioButton,
+    QButtonGroup,
+    QDialogButtonBox,
+)
+
 
 class LabelTypeDialog(QDialog):
     """Dialog to select label type (rect or polygon) for the session."""

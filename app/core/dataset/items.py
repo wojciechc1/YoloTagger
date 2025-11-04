@@ -4,6 +4,7 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+
 # --- Single image file ---
 class FileItem:
     def __init__(self, path, exts=(".jpg", ".jpeg", ".png")):
