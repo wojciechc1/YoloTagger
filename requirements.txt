@@ -1,13 +1,9 @@
-PyQt5>=5.15
-Pillow>=9.5
-numpy>=1.24
-opencv-python>=4.7
-pyyaml>=6.0
-torch>=2.1
-torchvision>=0.17
-ultralytics>=8.0
-tqdm>=4.65
-# dev
-ruff
-black
-mypy
+PyQt5~=5.15.11
+pillow~=11.2.1
+PyYAML~=6.0.2
+pytest~=8.4.1
+
+# (not CI-Linux)
+ultralytics~=8.3.174; sys_platform != "linux"
+torch>=2.1; sys_platform != "linux"
+torchvision>=0.17; sys_platform != "linux"

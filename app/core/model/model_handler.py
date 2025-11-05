@@ -1,7 +1,11 @@
-from ultralytics import YOLO
+import logging
+logger = logging.getLogger(__name__)
 
-
-# TODO OGARNAC LABELOWANIE Z WLASNEGO PT / CZYTELNIEJSZE LABELE / AUTO DODAWANIE CLASSES
+try:
+    from ultralytics import YOLO
+except ImportError:
+    YOLO = None
+    logger.warning("Ultralytics YOLO not available - using dummy mode.")
 
 
 class ModelHandler:

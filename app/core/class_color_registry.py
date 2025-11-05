@@ -47,9 +47,12 @@ class ClassColorRegistry:
         Returns default (QColor) if generation fails.
         """
         if class_id not in self.colors:
-            logger.debug("No color found for class %s, generating...", class_id)
-            self.set_color(class_id)
-        return self.colors.get(class_id, default or QColor("#FF0000"))
+            if default:
+                self.colors[class_id] = default
+                logger.debug("Assigned default color %s to class %s", default.name(), class_id)
+            else:
+                self.set_color(class_id)
+        return self.colors[class_id]
 
     def remove_color(self, class_id):
         """Remove the color assigned to a class."""
