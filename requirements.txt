@@ -3,6 +3,11 @@ pillow~=11.2.1
 PyYAML~=6.0.2
 pytest~=8.4.1
 
+# dev
+black~=25.9.0
+ruff~=0.14.3
+mypy~=1.18.2
+
 # (not CI-Linux)
 ultralytics~=8.3.174; sys_platform != "linux"
 torch>=2.1; sys_platform != "linux"

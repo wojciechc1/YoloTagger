@@ -49,7 +49,9 @@ class ClassColorRegistry:
         if class_id not in self.colors:
             if default:
                 self.colors[class_id] = default
-                logger.debug("Assigned default color %s to class %s", default.name(), class_id)
+                logger.debug(
+                    "Assigned default color %s to class %s", default.name(), class_id
+                )
             else:
                 self.set_color(class_id)
         return self.colors[class_id]

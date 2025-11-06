@@ -1,4 +1,3 @@
-import pytest
 from PyQt5.QtGui import QColor
 from app.core.class_color_registry import ClassColorRegistry
 
