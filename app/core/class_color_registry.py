@@ -1,6 +1,7 @@
 from PyQt5.QtGui import QColor
 import random
 import logging
+from typing import Optional, Dict, Union
 
 logger = logging.getLogger(__name__)
 
@@ -8,8 +9,8 @@ logger = logging.getLogger(__name__)
 class ClassColorRegistry:
     """Registry colors for classes, generates unique random colors if needed."""
 
-    def __init__(self):
-        self.colors = {}  # mapping: class_id -> QColor
+    def __init__(self) -> None:
+        self.colors: Dict[int, QColor] = {}  # mapping: class_id -> QColor
 
     def _generate_color(self) -> QColor:
         """Generate a visually distinct, slightly darker color using HSL."""
@@ -26,7 +27,9 @@ class ClassColorRegistry:
         )
         return color
 
-    def set_color(self, class_id, color=None):
+    def set_color(
+        self, class_id: int, color: Optional[Union[QColor, str]] = None
+    ) -> None:
         """
         Set a color for a class. If no color is provided, generate one automatically.
         Accepts QColor or string (hex code).
@@ -41,7 +44,7 @@ class ClassColorRegistry:
             logger.info("Assigned QColor %s to class %s", color.name(), class_id)
         self.colors[class_id] = color
 
-    def get_color(self, class_id, default=None) -> QColor:
+    def get_color(self, class_id: int, default: Optional[QColor] = None) -> QColor:
         """
         Get the QColor for a class. If not set, generate one automatically.
         Returns default (QColor) if generation fails.
@@ -56,7 +59,7 @@ class ClassColorRegistry:
                 self.set_color(class_id)
         return self.colors[class_id]
 
-    def remove_color(self, class_id):
+    def remove_color(self, class_id: int) -> None:
         """Remove the color assigned to a class."""
         if class_id in self.colors:
             removed = self.colors.pop(class_id)

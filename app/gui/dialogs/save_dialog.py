@@ -10,12 +10,13 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QDialogButtonBox,
 )
+from typing import Any, Optional
 
 
 class SaveDialog(QDialog):
     """Dialog for selecting label save options (format + folder)."""
 
-    def __init__(self, session, parent=None):
+    def __init__(self, session: Any, parent: Optional[QDialog] = None) -> None:
         """
         session: object containing info about label mode, e.g., session.label_mode = "rect" / "polygon"
         """
@@ -66,14 +67,14 @@ class SaveDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-    def select_folder(self):
+    def select_folder(self) -> None:
         """Open folder selection dialog."""
         folder = QFileDialog.getExistingDirectory(self, "Select Save Folder")
         if folder:
             self.path_edit.setText(folder)
             self.save_path = folder
 
-    def get_results(self):
+    def get_results(self) -> dict[str, str]:
         """Return selected format and save folder."""
         if self.raw_rb.isChecked():
             fmt = "raw"
@@ -84,4 +85,4 @@ class SaveDialog(QDialog):
         else:
             fmt = None
 
-        return {"format": fmt, "path": self.path_edit.text()}
+        return {"format": fmt or "", "path": self.path_edit.text()}

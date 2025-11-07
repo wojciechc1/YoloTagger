@@ -29,6 +29,7 @@ from app.gui.class_panel import ClassPanel
 from app.gui.dialogs.save_dialog import SaveDialog
 from app.gui.dialogs.load_labels_dialog import LoadDialog
 from app.gui.dialogs.label_type_dialog import LabelTypeDialog
+from typing import Optional
 
 
 class MainWindow(QMainWindow):
@@ -41,22 +42,22 @@ class MainWindow(QMainWindow):
 
         # --- Core session/state ---
         self.session = SessionState()
-        self.dataset_manager = DatasetService()
-        self.label_manager = LabelService()
-        self.model_manager = ModelHandler()
-        self.color_manager = ClassColorRegistry()
+        self.dataset_service = DatasetService()
+        self.label_service = LabelService()
+        self.model_handler = ModelHandler()
+        self.color_registry = ClassColorRegistry()
 
         # --- Panels ---
-        self.image_panel = ImagePanel(color_callback=self.color_manager.get_color)
+        self.image_panel = ImagePanel(color_callback=self.color_registry.get_color)
         self.dataset_panel = DatasetPanel()
-        self.class_panel = ClassPanel(color_callback=self.color_manager.get_color)
+        self.class_panel = ClassPanel(color_callback=self.color_registry.get_color)
 
         # --- Controller ---
         self.session_controller = SessionController(
-            self.dataset_manager,
-            self.label_manager,
-            self.model_manager,
-            self.color_manager,
+            self.dataset_service,
+            self.label_service,
+            self.model_handler,
+            self.color_registry,
             self.session,
         )
 
@@ -173,12 +174,12 @@ class MainWindow(QMainWindow):
         prev_btn.clicked.connect(self.session_controller.show_prev_file)
         col1.addWidget(prev_btn)
 
-        self.rect = QPushButton("Draw Rectangle")
+        self.rect: QPushButton = QPushButton("Draw Rectangle")
         self.rect.clicked.connect(self.draw_label)
         self.rect.setEnabled(False)
         col1.addWidget(self.rect)
 
-        self.polygon = QPushButton("Draw Polygon")
+        self.polygon: QPushButton = QPushButton("Draw Polygon")
         self.polygon.clicked.connect(self.draw_label)
         self.polygon.setEnabled(False)
         col1.addWidget(self.polygon)
@@ -202,20 +203,20 @@ class MainWindow(QMainWindow):
         layout.addLayout(col3)
 
     # ---------------- Slots ----------------
-    def draw_label(self):
+    def draw_label(self) -> None:
         """Trigger label drawing based on current mode."""
         self.image_panel.draw_label(self.session.label_mode, self.session.current_class)
 
-    def on_label_mode_changed(self, mode):
+    def on_label_mode_changed(self, mode: Optional[str]) -> None:
         """Enable/disable drawing buttons based on selected label mode."""
         self.rect.setEnabled(mode == "rect")
         self.polygon.setEnabled(mode == "polygon")
 
-    def on_class_selected(self, selected_class):
+    def on_class_selected(self, selected_class: Optional[int]) -> None:
         """Set the currently selected class."""
         self.session.current_class = selected_class
 
-    def on_select_model(self):
+    def on_select_model(self) -> None:
         # --- Open file dialog ---
         file_path, _ = QFileDialog.getOpenFileName(
             None, "Select YOLO Model (.pt)", "", "PyTorch Model (*.pt)"
@@ -226,31 +227,31 @@ class MainWindow(QMainWindow):
         self.session_controller.on_select_model(file_path)
 
     # ---------------- File actions ----------------
-    def on_save_as_clicked(self):
+    def on_save_as_clicked(self) -> None:
         """Save labels to a custom path and format."""
         dialog = SaveDialog(self.session, self)
         if dialog.exec_() == QDialog.Accepted:
             result = dialog.get_results()
             self.session_controller.save(result["path"], result["format"])
 
-    def on_save_clicked(self):
+    def on_save_clicked(self) -> None:
         """Quick save using last save path."""
         if not self.session.save_path:
             self.on_save_as_clicked()
             return
         self.session_controller.save()
 
-    def on_save_completed(self, path_or_error):
+    def on_save_completed(self, path_or_error: str) -> None:
         """Display result message after save."""
         if path_or_error == "error_no_path":
             QMessageBox.warning(self, "Error", "No save path selected.")
         else:
             QMessageBox.information(self, "Saved", f"Files saved to: {path_or_error}")
 
-    def on_open_file_clicked(self):
+    def on_open_file_clicked(self) -> None:
         """Open a single image file."""
         ext_filter = " ".join(
-            f"*{ext}" for ext in self.dataset_manager.get_extensions()
+            f"*{ext}" for ext in self.dataset_service.get_extensions()
         )
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Open File", "", f"Images ({ext_filter});;All Files (*)"
@@ -258,13 +259,13 @@ class MainWindow(QMainWindow):
         if file_path:
             self.session_controller.open_file(file_path)
 
-    def on_open_folder_clicked(self):
+    def on_open_folder_clicked(self) -> None:
         """Open folder with images."""
         folder = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder:
             self.session_controller.open_folder(folder)
 
-    def on_open_dataset_clicked(self):
+    def on_open_dataset_clicked(self) -> None:
         """Open YOLO-style dataset folder."""
         folder = QFileDialog.getExistingDirectory(self, "Select Dataset Folder")
         if not folder:
@@ -275,13 +276,13 @@ class MainWindow(QMainWindow):
             self.session_controller.open_dataset(folder)
 
     # ---------------- Label actions ----------------
-    def show_label_type_dialog(self):
+    def show_label_type_dialog(self) -> None:
         """Ask user for label type (rect/polygon)."""
         dialog = LabelTypeDialog(self.session, self)
         if dialog.exec_() != QDialog.Accepted:
             self.session.label_mode = dialog.selected_mode
 
-    def on_load_labels_clicked(self):
+    def on_load_labels_clicked(self) -> None:
         """Load labels from external file."""
         dialog = LoadDialog(self.session, self)
         if dialog.exec_() == QDialog.Accepted:

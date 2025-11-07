@@ -2,13 +2,16 @@ import os
 import json
 import yaml
 import logging
+from typing import Any, Dict, List, Optional
 from .items import DatasetItem
 
 logger = logging.getLogger(__name__)
 
 
 # --- Save COCO labels ---
-def save_labels_coco(labels, files, save_path):
+def save_labels_coco(
+    labels: Dict[str, List[Dict[str, Any]]], files: List[Dict[str, Any]], save_path: str
+) -> str:
     """
     Save labels in COCO format.
     labels: dict { image_path: [ { "type": "rect"/"polygon", "coords": [...], "class": class_id } ] }
@@ -83,7 +86,11 @@ def save_labels_coco(labels, files, save_path):
 
 
 # --- Save dataset COCO + YAML for YOLO ---
-def save_all_coco(current_item, all_labels, save_folder):
+def save_all_coco(
+    current_item: Optional["DatasetItem"],
+    all_labels: Dict[str, List[Dict[str, Any]]],
+    save_folder: str,
+) -> List[str]:
     """
     Save dataset in COCO format.
     Also generates dataset.yaml for YOLOv8/YOLOv9-seg.
@@ -157,7 +164,9 @@ def save_all_coco(current_item, all_labels, save_folder):
 
 
 # --- Load COCO labels ---
-def load_labels_coco(path_or_json, available_images=None):
+def load_labels_coco(
+    path_or_json: str, available_images: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, List[Dict[str, Any]]]:
     mapped_labels = {}
 
     if os.path.isfile(path_or_json) and path_or_json.lower().endswith(".json"):
@@ -196,7 +205,9 @@ def load_labels_coco(path_or_json, available_images=None):
 
 
 # --- Map COCO annotations to image paths ---
-def _map_coco_labels(coco_data, available_images):
+def _map_coco_labels(
+    coco_data: Dict[str, Any], available_images: Optional[List[Dict[str, Any]]]
+) -> Dict[str, List[Dict[str, Any]]]:
     id_to_img = {img["id"]: img for img in coco_data.get("images", [])}
     valid_image_names = (
         {os.path.basename(p["path"]): p["path"] for p in available_images}
@@ -204,7 +215,7 @@ def _map_coco_labels(coco_data, available_images):
         else {img["file_name"]: img["file_name"] for img in coco_data.get("images", [])}
     )
 
-    mapped_labels = {}
+    mapped_labels: Dict[str, List[Dict[str, Any]]] = {}
 
     for ann in coco_data.get("annotations", []):
         img_info = id_to_img.get(ann["image_id"])
@@ -226,7 +237,7 @@ def _map_coco_labels(coco_data, available_images):
         if seg and isinstance(seg, list) and len(seg) > 0:
             poly = seg[0]
             if len(poly) >= 6:
-                coords = [[poly[i], poly[i + 1]] for i in range(0, len(poly), 2)]
+                coords = [(poly[i], poly[i + 1]) for i in range(0, len(poly), 2)]
                 label_type = "polygon"
 
         label_dict = {

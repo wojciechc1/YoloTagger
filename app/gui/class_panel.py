@@ -9,8 +9,9 @@ from PyQt5.QtWidgets import (
     QListWidgetItem,
     QDialog,
 )
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal
 from app.gui.dialogs.edit_class_dialog import EditClassDialog
+from typing import Callable, Optional, Dict, Any
 
 
 class ClassPanel(QWidget):
@@ -21,12 +22,12 @@ class ClassPanel(QWidget):
     removeClassRequested = pyqtSignal(int)  # emits class ID to remove
     editClassRequested = pyqtSignal(int, str, str)  # emits class ID, name, color
 
-    def __init__(self, color_callback):
+    def __init__(self, color_callback: Callable[[int], Any]) -> None:
         super().__init__()
         self._setup_ui()
         self.get_color_callback = color_callback
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         """Create layout and connect UI elements."""
         layout = QVBoxLayout(self)
 
@@ -59,7 +60,7 @@ class ClassPanel(QWidget):
         layout.addWidget(self.class_list_widget)
 
     # --- Add new class ---
-    def add_class(self):
+    def add_class(self) -> None:
         new_class = self.class_input.text().strip()
         if not new_class:
             return
@@ -67,7 +68,7 @@ class ClassPanel(QWidget):
         self.addClassRequested.emit(new_class)
 
     # --- Remove selected class ---
-    def remove_selected_class(self):
+    def remove_selected_class(self) -> None:
         selected = self.class_list_widget.currentItem()
         if not selected:
             return
@@ -76,12 +77,12 @@ class ClassPanel(QWidget):
         self.classSelected.emit(None)
 
     # --- Edit selected class ---
-    def edit_selected_class(self):
-        selected = self.class_list_widget.currentItem()
+    def edit_selected_class(self) -> None:
+        selected: Optional[QListWidgetItem] = self.class_list_widget.currentItem()
         if not selected:
             return
 
-        data = selected.data(Qt.UserRole)
+        data = selected.data(32)  # Qt.UserRole == 32
         class_id = data["id"] if isinstance(data, dict) else data
         class_color = self.get_color_callback(class_id)
         class_name = selected.text().split(": ", 1)[1]
@@ -93,15 +94,15 @@ class ClassPanel(QWidget):
             self.editClassRequested.emit(class_id, new_name, new_color)
 
     # --- Refresh list ---
-    def refresh_classes_list(self, class_dict):
+    def refresh_classes_list(self, class_dict: Dict[int, str]) -> None:
         """Rebuild class list from a dict {id: name}."""
         self.class_list_widget.clear()
         for cid, cname in class_dict.items():
             item = QListWidgetItem(f"{cid}: {cname}")
-            item.setData(Qt.UserRole, cid)
+            item.setData(32, cid)  # Qt.UserRole == 32
             self.class_list_widget.addItem(item)
 
     # --- On class selected ---
-    def on_class_selected(self, item):
-        class_id = item.data(Qt.UserRole)
+    def on_class_selected(self, item: QListWidgetItem) -> None:
+        class_id = item.data(32)  # Qt.UserRole == 32
         self.classSelected.emit(class_id)

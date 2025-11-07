@@ -2,21 +2,29 @@ import os
 import logging
 from .items import DatasetItem
 from PIL import Image
+from typing import Any, Dict, List, Tuple, Optional, Union
 
 logger = logging.getLogger(__name__)
 
 
 # --- Convert all rect labels to YOLO format ---
-def get_all_yolo_labels(files, labels):
+def get_all_yolo_labels(
+    files: List[str], labels: Dict[str, List[Dict[str, Any]]]
+) -> Dict[str, List[str]]:
     """
     Return {file_path: [YOLO lines]} for all files.
     Uses img_size from files if available.
     """
-    img_sizes = {f["path"]: f.get("size") for f in files}
-    all_labels = {}
+    img_sizes: Dict[str, Tuple[int, int]] = {}
+    for f in files:
+        if isinstance(f, dict):
+            img_sizes[f["path"]] = f.get("size") or (1, 1)
+        else:
+            img_sizes[f] = (1, 1)
+    all_labels: Dict[str, List[str]] = {}
 
     for file_path, img_labels in labels.items():
-        yolo_lines = []
+        yolo_lines: List[str] = []
         img_w, img_h = img_sizes.get(file_path, (1, 1))
 
         for label in img_labels:
@@ -39,7 +47,7 @@ def get_all_yolo_labels(files, labels):
 
 
 # --- Save single YOLO .txt ---
-def save_yolo_labels(file_path, yolo_lines, export_folder):
+def save_yolo_labels(file_path: str, yolo_lines: List[str], export_folder: str) -> str:
     """
     Save single YOLO .txt file.
     """
@@ -55,11 +63,13 @@ def save_yolo_labels(file_path, yolo_lines, export_folder):
 
 
 # --- Save all YOLO labels ---
-def save_all_yolo(current_item, all_yolo, save_folder):
+def save_all_yolo(
+    current_item: Any, all_yolo: Dict[str, List[str]], save_folder: str
+) -> List[str]:
     """
     Save all YOLO labels for dataset, folder or file.
     """
-    saved_files = []
+    saved_files: List[str] = []
 
     if isinstance(current_item, DatasetItem):
         train_folder = os.path.join(current_item.dataset_dir, "labels/train")
@@ -87,7 +97,7 @@ def save_all_yolo(current_item, all_yolo, save_folder):
 
 
 # --- Save YOLO data.yaml ---
-def save_yaml_yolo(current_item, unique_classes):
+def save_yaml_yolo(current_item: Any, unique_classes: Dict[int, str]) -> Optional[str]:
     """
     Create data.yaml for YOLO dataset.
     """
@@ -99,7 +109,9 @@ def save_yaml_yolo(current_item, unique_classes):
         "\\", "/"
     )
     val_path = os.path.join(current_item.dataset_dir, "images/val").replace("\\", "/")
-    names_yaml = "\n  - ".join([name for key, name in sorted(unique_classes.items())])
+    names_yaml = "\n  - ".join(
+        [str(name) for key, name in sorted(unique_classes.items())]
+    )
 
     yaml_content = f"train: {train_path}\nval: {val_path}\nnc: {len(unique_classes)}\nnames:\n  - {names_yaml}\n"
 
@@ -111,11 +123,13 @@ def save_yaml_yolo(current_item, unique_classes):
 
 
 # --- Load single YOLO file ---
-def load_yolo_file_dict(txt_path, img_path, img_size=None):
+def load_yolo_file_dict(
+    txt_path: str, img_path: str, img_size: Optional[Tuple[int, int]] = None
+) -> List[Dict[str, Any]]:
     """
     Load YOLO labels from .txt file.
     """
-    labels = []
+    labels: List[Dict[str, Any]] = []
     if not os.path.exists(txt_path):
         return labels
 
@@ -149,26 +163,35 @@ def load_yolo_file_dict(txt_path, img_path, img_size=None):
 
 
 # --- Load YOLO labels automatically ---
-def load_yolo_labels_auto(base_path, all_files, unique_classes=None):
+def load_yolo_labels_auto(
+    base_path: str, all_files: Union[List[str], List[Dict[str, Any]]]
+) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Auto-load YOLO labels for images in all_files.
+    Autoload YOLO labels for images in all_files.
+    Accepts list of paths (str) or list of dicts {"path":..., "size":...}.
     """
-    mapped_labels = {}
+    # Konwersja stringów na dict
+    normalized_files: List[Dict[str, Any]] = []
+    for f in all_files:
+        if isinstance(f, str):
+            normalized_files.append({"path": f})
+        else:
+            normalized_files.append(f)
 
-    # find label folders
-    label_dirs = []
+    mapped_labels: Dict[str, List[Dict[str, Any]]] = {}
+
+    # --- find label folders ---
+    label_dirs: List[str] = []
     if os.path.isdir(base_path) and any(
         f.lower().endswith(".txt") for f in os.listdir(base_path)
     ):
         label_dirs = [base_path]
     elif os.path.exists(os.path.join(base_path, "labels")):
         labels_root = os.path.join(base_path, "labels")
-        train_dir = os.path.join(labels_root, "train")
-        val_dir = os.path.join(labels_root, "val")
-        if os.path.exists(train_dir):
-            label_dirs.append(train_dir)
-        if os.path.exists(val_dir):
-            label_dirs.append(val_dir)
+        for sub in ["train", "val"]:
+            sub_dir = os.path.join(labels_root, sub)
+            if os.path.exists(sub_dir):
+                label_dirs.append(sub_dir)
         if not label_dirs and any(
             f.lower().endswith(".txt") for f in os.listdir(labels_root)
         ):
@@ -178,16 +201,15 @@ def load_yolo_labels_auto(base_path, all_files, unique_classes=None):
         logger.warning("No label folders found at '%s'", base_path)
         return mapped_labels
 
-    # map image names → txt paths
-    label_map = {}
+    # --- map image names → txt paths ---
+    label_map: Dict[str, str] = {}
     for ldir in label_dirs:
         for fname in os.listdir(ldir):
             if fname.lower().endswith(".txt"):
-                name = os.path.splitext(fname)[0]
-                label_map[name] = os.path.join(ldir, fname)
+                label_map[os.path.splitext(fname)[0]] = os.path.join(ldir, fname)
 
-    # match each image with its .txt
-    for file_info in all_files:
+    # --- match each image with its .txt ---
+    for file_info in normalized_files:
         img_path = file_info["path"]
         img_size = file_info.get("size")
         img_name = os.path.splitext(os.path.basename(img_path))[0]

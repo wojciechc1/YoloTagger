@@ -10,12 +10,13 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QDialogButtonBox,
 )
+from typing import Any, Dict, Optional
 
 
 class LoadDialog(QDialog):
     """Dialog for selecting label loading options (format + path)."""
 
-    def __init__(self, session, parent=None):
+    def __init__(self, session: Any, parent: Optional[QDialog] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Load Labels Options")
         self.resize(400, 200)
@@ -64,7 +65,7 @@ class LoadDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-    def select_path(self):
+    def select_path(self) -> None:
         """Open file/folder dialog depending on selected format."""
         if self.yolo_rb.isChecked():
             folder = QFileDialog.getExistingDirectory(self, "Select YOLO Labels Folder")
@@ -86,7 +87,7 @@ class LoadDialog(QDialog):
                 self.path_edit.setText(file_path)
                 self.load_path = file_path
 
-    def get_results(self):
+    def get_results(self) -> Dict[str, str]:
         """Return selected format and path."""
         if self.raw_rb.isChecked():
             fmt = "raw"
@@ -97,4 +98,4 @@ class LoadDialog(QDialog):
         else:
             fmt = None
 
-        return {"format": fmt, "path": self.path_edit.text()}
+        return {"format": fmt or "", "path": self.path_edit.text()}

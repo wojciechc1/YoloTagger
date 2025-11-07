@@ -4,8 +4,9 @@ from PyQt5.QtWidgets import (
     QGraphicsItem,
     QGraphicsPolygonItem,
 )
-from PyQt5.QtGui import QPen, QBrush, QPolygonF, QColor
+from PyQt5.QtGui import QPen, QBrush, QPolygonF, QColor, QPainter
 from PyQt5.QtCore import Qt, QRectF, pyqtSignal, QPointF
+from typing import Optional, Callable, List, Any, Tuple
 
 
 # --- Handle (draggable corner/point) ---
@@ -14,8 +15,15 @@ class Handle(QGraphicsEllipseItem):
 
     moved = pyqtSignal()  # emitted when handle is moved
 
-    def __init__(self, x, y, radius=5, class_color=Qt.blue, parent=None):
-        self.base_radius = float(radius)
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        radius: float = 5,
+        class_color: QColor = QColor("blue"),
+        parent: Optional[QGraphicsItem] = None,
+    ):
+        self.base_radius: float = float(radius)
 
         # create ellipse centered at (0,0) in local coords
         super().__init__(
@@ -27,15 +35,13 @@ class Handle(QGraphicsEllipseItem):
         )
         self.setPos(x, y)
         self.setBrush(QBrush(class_color))
-        self.setPen(QPen(Qt.black))
-        self.setFlags(
-            QGraphicsItem.ItemIsMovable
-            | QGraphicsItem.ItemSendsGeometryChanges
-            | QGraphicsItem.ItemIsSelectable
-        )
+        self.setPen(QPen(QColor("black")))
+        self.setFlag(QGraphicsItem.ItemIsMovable, True)  # type: ignore[attr-defined]
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)  # type: ignore[attr-defined]
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)  # type: ignore[attr-defined]
 
-    def itemChange(self, change, value):
-        if change == QGraphicsItem.ItemPositionChange:
+    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             parent = self.parentItem()
             if parent and hasattr(parent, "img_rect"):
                 # Keep handle inside image boundaries
@@ -58,7 +64,7 @@ class Handle(QGraphicsEllipseItem):
         return super().itemChange(change, value)
 
     # scale radius to zoom
-    def update_size(self, zoom):
+    def update_size(self, zoom: float) -> None:
         try:
             z = float(zoom) if zoom and zoom > 0 else 1.0
         except Exception:
@@ -76,30 +82,28 @@ class RectItem(QGraphicsRectItem):
 
     def __init__(
         self,
-        coords,
-        label_id,
-        class_id,
-        file_path,
-        img_rect,
-        change_callback=None,
-        get_color_callback=None,
-        parent=None,
+        coords: List[Tuple[float, float]],
+        label_id: int,
+        class_id: int,
+        file_path: str,
+        img_rect: QRectF,
+        change_callback: Callable[[str, int, list], None],
+        get_color_callback: Callable[[int], QColor],
+        parent: Optional[QGraphicsItem] = None,
     ):
         super().__init__(parent)
-        self.label_id = label_id
-        self.class_id = class_id
-        self.file_path = file_path
-        self.img_rect = img_rect
+        self.label_id: int = label_id
+        self.class_id: int = class_id
+        self.file_path: str = file_path
+        self.img_rect: QRectF = img_rect
         self.change_callback = change_callback
         self.get_color_callback = get_color_callback
 
-        self.setPen(QPen(Qt.red, 2))
-        self.setBrush(QBrush(Qt.transparent))
-        self.setFlags(
-            QGraphicsRectItem.ItemIsSelectable
-            | QGraphicsRectItem.ItemIsMovable
-            | QGraphicsRectItem.ItemSendsGeometryChanges
-        )
+        self.setPen(QPen(QColor("red"), 2))
+        self.setBrush(QBrush(QColor(0, 0, 0, 0)))
+        self.setFlag(QGraphicsItem.ItemIsMovable, True)  # type: ignore[attr-defined]
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)  # type: ignore[attr-defined]
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)  # type: ignore[attr-defined]
         self.setAcceptHoverEvents(True)
 
         color = self.get_color_callback(self.class_id)
@@ -114,10 +118,12 @@ class RectItem(QGraphicsRectItem):
 
         self.update_rect()
 
-    def paint(self, painter, option, widget=None):
+    def paint(self, painter: QPainter, option: Any, widget: Optional[Any] = None) -> None:  # type: ignore[override]
         zoom = getattr(self.scene(), "zoom_factor", 1.0)
         base_color = self.get_color_callback(self.class_id)
-        pen_color = QColor(Qt.yellow) if self.isSelected() else QColor(base_color)
+        pen_color = (
+            QColor(QColor("yellow")) if self.isSelected() else QColor(base_color)
+        )
         pen = QPen(pen_color, 10 / zoom)
 
         fill_color = QColor(base_color)
@@ -150,11 +156,14 @@ class RectItem(QGraphicsRectItem):
         bg_color.setAlpha(220)
         painter.fillRect(bg_rect, bg_color)
 
-        painter.setPen(Qt.white)
-        painter.drawText(bg_rect, Qt.AlignCenter, label)
+        painter.setPen(QColor("white"))
+        painter.drawText(bg_rect, Qt.AlignmentFlag.AlignCenter, label)
 
-    def itemChange(self, change, value):
-        if change == QGraphicsItem.ItemPositionChange and isinstance(value, QPointF):
+    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:
+        if (
+            change == QGraphicsItem.GraphicsItemChange.ItemPositionChange
+            and isinstance(value, QPointF)
+        ):
             img_rect = getattr(self, "img_rect", None)
             if img_rect:
                 rect = self.rect()
@@ -171,19 +180,19 @@ class RectItem(QGraphicsRectItem):
                 self.on_change()
         return super().itemChange(change, value)
 
-    def on_change(self):
+    def on_change(self) -> None:
         """Emit updated rectangle coordinates."""
         start_scene = self.mapToScene(self.start_handle.pos())
         end_scene = self.mapToScene(self.end_handle.pos())
         coords = [(start_scene.x(), start_scene.y()), (end_scene.x(), end_scene.y())]
         self.change_callback(self.file_path, self.label_id, coords)
 
-    def handle_moved(self):
+    def handle_moved(self) -> None:
         """Called when a handle moves."""
         self.update_rect()
         self.on_change()
 
-    def update_rect(self):
+    def update_rect(self) -> None:
         """Recalculate rectangle based on handle positions."""
         x1, y1 = self.start_handle.pos().x(), self.start_handle.pos().y()
         x2, y2 = self.end_handle.pos().x(), self.end_handle.pos().y()
@@ -197,41 +206,42 @@ class PolygonItem(QGraphicsPolygonItem):
 
     def __init__(
         self,
-        points,
-        label_id,
-        class_id,
-        file_path,
-        img_rect,
-        change_callback=None,
-        get_color_callback=None,
-        parent=None,
+        points: List[Tuple[float, float]],
+        label_id: int,
+        class_id: int,
+        file_path: str,
+        img_rect: QRectF,
+        change_callback: Callable[[str, int, list], None],
+        get_color_callback: Callable[[int], QColor],
+        parent: Optional[QGraphicsItem] = None,
     ):
         super().__init__(parent)
-        self.label_id = label_id
-        self.class_id = class_id
-        self.file_path = file_path
-        self.img_rect = img_rect
-        self.get_color = get_color_callback
+        self.label_id: int = label_id
+        self.class_id: int = class_id
+        self.file_path: str = file_path
+        self.img_rect: QRectF = img_rect
+        self.get_color_callback = get_color_callback
         self.change_callback = change_callback
 
-        self.setPen(QPen(Qt.red, 2))
-        self.setBrush(QBrush(Qt.transparent))
-        self.setFlags(
-            QGraphicsItem.ItemIsSelectable
-            | QGraphicsItem.ItemIsMovable
-            | QGraphicsItem.ItemSendsGeometryChanges
-        )
+        self.setPen(QPen(QColor("red"), 2))
+        self.setBrush(QBrush(QColor(0, 0, 0, 0)))
+        self.setFlag(QGraphicsItem.ItemIsMovable, True)  # type: ignore[attr-defined]
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)  # type: ignore[attr-defined]
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)  # type: ignore[attr-defined]
         self.setAcceptHoverEvents(True)
 
-        color = self.get_color(self.class_id)
+        color = self.get_color_callback(self.class_id)
         # Create handles for polygon points
-        self.handles = [
+        self.handles: List[Handle] = [
             Handle(pt[0], pt[1], class_color=color, parent=self) for pt in points
         ]
         self.update_polygon()
 
-    def itemChange(self, change, value):
-        if change == QGraphicsItem.ItemPositionChange and isinstance(value, QPointF):
+    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:
+        if (
+            change == QGraphicsItem.GraphicsItemChange.ItemPositionChange
+            and isinstance(value, QPointF)
+        ):
             img_rect = getattr(self, "img_rect", None)
             if img_rect:
                 min_x = min(h.pos().x() for h in self.handles)
@@ -250,17 +260,17 @@ class PolygonItem(QGraphicsPolygonItem):
                 self.on_change()
         return super().itemChange(change, value)
 
-    def handle_moved(self):
+    def handle_moved(self) -> None:
         """Called when a handle is moved."""
         self.update_polygon()
         self.on_change()
 
-    def update_polygon(self):
+    def update_polygon(self) -> None:
         """Rebuild polygon from handle positions."""
         polygon = QPolygonF([h.pos() for h in self.handles])
         self.setPolygon(polygon)
 
-    def on_change(self):
+    def on_change(self) -> None:
         """Emit updated polygon coordinates."""
         coords = [
             (self.mapToScene(h.pos()).x(), self.mapToScene(h.pos()).y())
@@ -268,11 +278,13 @@ class PolygonItem(QGraphicsPolygonItem):
         ]
         self.change_callback(self.file_path, self.label_id, coords)
 
-    def paint(self, painter, option, widget=None):
+    def paint(self, painter: QPainter, option: Any, widget: Optional[Any] = None) -> None:  # type: ignore[override]
         zoom = getattr(self.scene(), "zoom_factor", 1.0)
 
-        base_color = self.get_color(self.class_id)
-        pen_color = QColor(Qt.yellow) if self.isSelected() else QColor(base_color)
+        base_color = self.get_color_callback(self.class_id)
+        pen_color = (
+            QColor(QColor("yellow")) if self.isSelected() else QColor(base_color)
+        )
         pen = QPen(pen_color, 10 / zoom)
 
         fill_color = QColor(base_color)
@@ -306,5 +318,5 @@ class PolygonItem(QGraphicsPolygonItem):
         bg_color.setAlpha(220)
         painter.fillRect(bg_rect, bg_color)
 
-        painter.setPen(Qt.white)
-        painter.drawText(bg_rect, Qt.AlignCenter, label)
+        painter.setPen(QColor("white"))
+        painter.drawText(bg_rect, Qt.AlignmentFlag.AlignCenter, label)

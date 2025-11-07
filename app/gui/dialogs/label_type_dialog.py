@@ -44,7 +44,7 @@ class LabelTypeDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def accept(self):
+    def accept(self) -> None:
         """Save the selection to session before closing."""
         self.session.label_mode = "polygon" if self.poly_rb.isChecked() else "rect"
         super().accept()

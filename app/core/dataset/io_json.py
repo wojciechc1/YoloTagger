@@ -1,12 +1,15 @@
 import os
 import json
 import logging
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
 
 # --- Save labels to JSON ---
-def save_labels_json(all_labels, save_path):
+def save_labels_json(
+    all_labels: Dict[str, List[Dict[str, Any]]], save_path: str
+) -> str:
     """
     Save all labels to labels.json.
     Keys: filenames, Classes as ID (int)
@@ -39,20 +42,22 @@ def save_labels_json(all_labels, save_path):
 
 
 # --- Load labels from JSON ---
-def load_labels_json(json_path, available_images):
+def load_labels_json(
+    json_path: str, available_images: List[str]
+) -> Dict[str, List[Dict[str, Any]]]:
     """
     Load labels.json and map labels to images by filename.
     Returns class IDs as int.
     """
     with open(json_path, "r", encoding="utf-8") as f:
-        label_data = json.load(f)
+        label_data: Dict[str, List[Dict[str, Any]]] = json.load(f)
 
-    mapped_labels = {}
+    mapped_labels: Dict[str, List[Dict[str, Any]]] = {}
 
     for img_path in available_images:
         filename = os.path.basename(img_path)
         if filename in label_data:
-            labels = []
+            labels: List[Dict[str, Any]] = []
             for lbl in label_data[filename]:
                 labels.append(
                     {

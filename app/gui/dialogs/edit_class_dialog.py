@@ -9,12 +9,13 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
 )
 from PyQt5.QtGui import QColor
+from typing import Tuple
 
 
 class EditClassDialog(QDialog):
     """Dialog to edit class name and color."""
 
-    def __init__(self, class_name, class_color="#FF0000", parent=None):
+    def __init__(self, class_name: str, class_color: str = "#FF0000", parent=None):
         super().__init__(parent)
         self.setWindowTitle("Edit Class")
         self.new_color = QColor(class_color)
@@ -44,16 +45,16 @@ class EditClassDialog(QDialog):
         layout.addWidget(buttons)
 
     # --- Update button background to current color ---
-    def update_color_button(self):
+    def update_color_button(self) -> None:
         self.color_button.setStyleSheet(f"background-color: {self.new_color.name()};")
 
     # --- Open color picker dialog ---
-    def select_color(self):
+    def select_color(self) -> None:
         color = QColorDialog.getColor(self.new_color, self, "Select Class Color")
         if color.isValid():
             self.new_color = color
             self.update_color_button()
 
     # --- Return current values ---
-    def get_values(self):
+    def get_values(self) -> Tuple[str, str]:
         return self.name_edit.text(), self.new_color.name()

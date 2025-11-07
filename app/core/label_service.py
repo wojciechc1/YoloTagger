@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -7,12 +8,14 @@ class LabelService:
     """Manages labels for images and tracks unique classes."""
 
     def __init__(self):
-        self.labels = {}  # "img_path": [label_dicts]
-        self.unique_classes = {0: "Cat", 1: "Dog"}
-        self.next_class_id = max(self.unique_classes.keys()) + 1
+        self.labels: Dict[str, List[Dict[str, Any]]] = {}  # "img_path": [label_dicts]
+        self.unique_classes: Dict[int, str] = {}
+        self.next_class_id: int = max(self.unique_classes.keys(), default=-1) + 1
 
     # --- Label operations ---
-    def add_label(self, img_path, selected_class, label_type, coords):
+    def add_label(
+        self, img_path: str, selected_class: int, label_type: str, coords: List[Any]
+    ) -> None:
         self.ensure_entry(img_path)
         label_id = self.get_next_id(img_path)
         label_data = {
@@ -24,7 +27,7 @@ class LabelService:
         self.labels[img_path].append(label_data)
         logger.info("Added label %s to image %s", label_data, img_path)
 
-    def update_label(self, img_path, label_id, coords):
+    def update_label(self, img_path: str, label_id: int, coords: List[Any]) -> None:
         self.ensure_entry(img_path)
         for label in self.labels[img_path]:
             if label["id"] == label_id:
@@ -32,7 +35,7 @@ class LabelService:
                 logger.info("Updated label %s with new coords %s", label_id, coords)
                 break
 
-    def remove_label(self, img_path, label_id):
+    def remove_label(self, img_path: str, label_id: int) -> None:
         self.ensure_entry(img_path)
         before = len(self.labels[img_path])
         self.labels[img_path] = [
@@ -47,22 +50,22 @@ class LabelService:
             after,
         )
 
-    def get_labels(self, img_path):
+    def get_labels(self, img_path: str) -> List[Dict[str, Any]]:
         self.ensure_entry(img_path)
         return self.labels[img_path]
 
-    def clear_labels(self, img_path):
+    def clear_labels(self, img_path: str) -> None:
         self.labels[img_path] = []
         logger.info("Cleared all labels for image %s", img_path)
 
-    def has_labels(self, img_path) -> bool:
+    def has_labels(self, img_path: str) -> bool:
         return bool(self.labels.get(img_path))
 
     # --- Unique class operations ---
-    def get_unique_classes(self):
+    def get_unique_classes(self) -> Dict[int, str]:
         return dict(sorted(self.unique_classes.items()))
 
-    def add_unique_class(self, unique_class):
+    def add_unique_class(self, unique_class: str) -> int:
         for cid, cname in self.unique_classes.items():
             if cname == unique_class:
                 return cid
@@ -77,13 +80,13 @@ class LabelService:
         logger.info("Added unique class %s with id %d", unique_class, new_id)
         return new_id
 
-    def edit_class(self, class_id, new_name):
+    def edit_class(self, class_id: int, new_name: str) -> None:
         if class_id in self.unique_classes:
             old_name = self.unique_classes[class_id]
             self.unique_classes[class_id] = new_name
             logger.info("Renamed class %d: %s -> %s", class_id, old_name, new_name)
 
-    def remove_unique_class(self, class_id):
+    def remove_unique_class(self, class_id: int) -> None:
         class_id = int(class_id)
         if class_id in self.unique_classes:
             removed = self.unique_classes[class_id]
@@ -95,7 +98,7 @@ class LabelService:
             ]
 
     # --- Loading / resetting ---
-    def load_labels(self, mapped_labels):
+    def load_labels(self, mapped_labels: Dict[str, List[Dict[str, Any]]]) -> None:
         self.reset_labels()
         class_names = sorted(
             {label["class"] for labels in mapped_labels.values() for label in labels}
@@ -107,20 +110,20 @@ class LabelService:
             self.set_labels(img_path, labels)
         logger.info("Loaded labels for %d images", len(mapped_labels))
 
-    def reset_labels(self):
+    def reset_labels(self) -> None:
         self.labels = {}
         self.unique_classes = {}
         self.next_class_id = 0
         logger.info("Reset all labels and unique classes")
 
     # --- Helpers ---
-    def get_next_id(self, img_path):
+    def get_next_id(self, img_path: str) -> int:
         labels_for_img = self.labels.get(img_path, [])
         return max([label["id"] for label in labels_for_img], default=-1) + 1
 
-    def set_labels(self, img_path, label_data):
+    def set_labels(self, img_path: str, label_data: List[Dict[str, Any]]) -> None:
         self.labels[img_path] = label_data
 
-    def ensure_entry(self, img_path):
+    def ensure_entry(self, img_path: str) -> None:
         if img_path not in self.labels:
             self.labels[img_path] = []
