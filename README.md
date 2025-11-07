@@ -1,5 +1,9 @@
 # YoloTagger
 
+[![CI](https://github.com/wojciechc1/YoloTagger/actions/workflows/tests.yml/badge.svg)](https://github.com/wojciechc1/YoloTagger/actions)[![Code style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Linter: Ruff](https://img.shields.io/badge/linter-ruff-cc66ff.svg)](https://github.com/astral-sh/ruff)
+[![Mypy](https://img.shields.io/badge/mypy-checked-blue.svg)](https://github.com/python/mypy)
+
 **YoloTagger** is a lightweight, desktop Python application for labeling images for object detection datasets.  
 It supports **JSON (raw), YOLO, and COCO** formats, allows **class management**, and can leverage **pretrained YOLO models** for automatic predictions.
 
@@ -61,7 +65,7 @@ YoloTagger/
 │   requirements.txt
 │
 ├───app/
-│   ├───core/           # Dataset management, model manager, label & session logic
+│   ├───core/           # Dataset management, model handler, label & session logic
 │   ├───gui/            # PyQt5 GUI (panels, dialogs)
 │   ├───items/          # Custom annotation items
 │   └───temp/           # Temporary session/cache files
