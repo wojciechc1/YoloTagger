@@ -2,6 +2,7 @@ PyQt5~=5.15.11
 pillow~=11.2.1
 PyYAML~=6.0.2
 pytest~=8.4.1
+PyYAML
 
 # dev
 black~=25.9.0
