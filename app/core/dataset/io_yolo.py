@@ -78,8 +78,8 @@ def save_all_yolo(
         os.makedirs(val_folder, exist_ok=True)
 
         for file_path, lines in all_yolo.items():
-            if not lines:
-                continue
+            # An empty list means every box was deleted: still write the file,
+            # otherwise a stale .txt would survive and the deletion be lost.
             if any(f.path == file_path for f in current_item.train):
                 saved_files.append(save_yolo_labels(file_path, lines, train_folder))
             elif any(f.path == file_path for f in current_item.val):
@@ -88,8 +88,6 @@ def save_all_yolo(
         folder = save_folder or os.path.dirname(list(all_yolo.keys())[0])
         os.makedirs(folder, exist_ok=True)
         for file_path, lines in all_yolo.items():
-            if not lines:
-                continue
             saved_files.append(save_yolo_labels(file_path, lines, folder))
 
     logger.info(f"Saved YOLO labels for {len(saved_files)} files")
