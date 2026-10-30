@@ -1,5 +1,6 @@
 from PyQt5.QtGui import QColor
 import random
+import zlib
 import logging
 from typing import Optional, Dict, Union
 
@@ -12,11 +13,21 @@ class ClassColorRegistry:
     def __init__(self) -> None:
         self.colors: Dict[int, QColor] = {}  # mapping: class_id -> QColor
 
-    def _generate_color(self) -> QColor:
-        """Generate a visually distinct, slightly darker color using HSL."""
-        hue = random.randint(0, 359)
-        saturation = random.randint(180, 255)
-        lightness = random.randint(50, 120)
+    def _generate_color(self, class_id: int) -> QColor:
+        """Generate a visually distinct, slightly darker color using HSL.
+
+        Derived from class_id so a class keeps the same color between runs.
+        """
+        try:
+            index = int(class_id)
+        except (TypeError, ValueError):
+            # non-numeric ids (e.g. class names) still need a stable index
+            index = zlib.crc32(str(class_id).encode())
+        rng = random.Random(index)
+        # golden-angle hue steps keep neighbouring class ids far apart
+        hue = int((index * 137.508) % 360)
+        saturation = rng.randint(180, 255)
+        lightness = rng.randint(50, 120)
         color = QColor.fromHsl(hue, saturation, lightness)
         logger.debug(
             "Generated darker color HSL(%d,%d,%d): %s",
@@ -35,7 +46,7 @@ class ClassColorRegistry:
         Accepts QColor or string (hex code).
         """
         if color is None:
-            color = self._generate_color()
+            color = self._generate_color(class_id)
             logger.info("Auto-assigned color %s to class %s", color.name(), class_id)
         elif isinstance(color, str):
             color = QColor(color)
