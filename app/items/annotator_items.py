@@ -9,6 +9,16 @@ from PyQt5.QtCore import Qt, QRectF, pyqtSignal, QPointF
 from typing import Optional, Callable, List, Any, Tuple
 
 
+def view_scale(item: QGraphicsItem) -> float:
+    """Current view scale factor, used to keep decorations a constant screen size."""
+    scene = item.scene()
+    views = scene.views() if scene else []
+    if not views:
+        return 1.0
+    scale = views[0].transform().m11()
+    return scale if scale > 0 else 1.0
+
+
 # --- Handle (draggable corner/point) ---
 class Handle(QGraphicsEllipseItem):
     """Small draggable handle for resizing or shaping items."""
@@ -70,7 +80,7 @@ class Handle(QGraphicsEllipseItem):
         except Exception:
             z = 1.0
 
-        r = max(3.0, (self.base_radius * 10) / z)
+        r = max(1.0, self.base_radius / z)
         self.setRect(-r, -r, 2 * r, 2 * r)
 
 
@@ -119,12 +129,12 @@ class RectItem(QGraphicsRectItem):
         self.update_rect()
 
     def paint(self, painter: QPainter, option: Any, widget: Optional[Any] = None) -> None:  # type: ignore[override]
-        zoom = getattr(self.scene(), "zoom_factor", 1.0)
+        zoom = view_scale(self)
         base_color = self.get_color_callback(self.class_id)
         pen_color = (
             QColor(QColor("yellow")) if self.isSelected() else QColor(base_color)
         )
-        pen = QPen(pen_color, 10 / zoom)
+        pen = QPen(pen_color, 2 / zoom)
 
         fill_color = QColor(base_color)
         fill_color.setAlpha(60)
@@ -140,13 +150,13 @@ class RectItem(QGraphicsRectItem):
         # --- Label (centered) ---
         label = str(self.class_id)
         font = painter.font()
-        font.setPointSizeF(50 / zoom)
+        font.setPointSizeF(12 / zoom)
         painter.setFont(font)
 
         rect = self.rect()
         fm = painter.fontMetrics()
-        text_w = fm.horizontalAdvance(label) + 10 / zoom
-        text_h = fm.height() + 6 / zoom
+        text_w = fm.horizontalAdvance(label) + 4 / zoom
+        text_h = fm.height() + 2 / zoom
 
         bg_x = rect.center().x() - text_w / 2
         bg_y = rect.center().y() - text_h / 2
@@ -279,13 +289,13 @@ class PolygonItem(QGraphicsPolygonItem):
         self.change_callback(self.file_path, self.label_id, coords)
 
     def paint(self, painter: QPainter, option: Any, widget: Optional[Any] = None) -> None:  # type: ignore[override]
-        zoom = getattr(self.scene(), "zoom_factor", 1.0)
+        zoom = view_scale(self)
 
         base_color = self.get_color_callback(self.class_id)
         pen_color = (
             QColor(QColor("yellow")) if self.isSelected() else QColor(base_color)
         )
-        pen = QPen(pen_color, 10 / zoom)
+        pen = QPen(pen_color, 2 / zoom)
 
         fill_color = QColor(base_color)
         fill_color.setAlpha(60)
@@ -302,12 +312,12 @@ class PolygonItem(QGraphicsPolygonItem):
         # --- Label (centered in polygon) ---
         label = str(self.class_id)
         font = painter.font()
-        font.setPointSizeF(50 / zoom)
+        font.setPointSizeF(12 / zoom)
         painter.setFont(font)
 
         fm = painter.fontMetrics()
-        text_w = fm.horizontalAdvance(label) + 10 / zoom
-        text_h = fm.height() + 6 / zoom
+        text_w = fm.horizontalAdvance(label) + 4 / zoom
+        text_h = fm.height() + 2 / zoom
 
         rect = self.boundingRect()
         bg_x = rect.center().x() - text_w / 2
