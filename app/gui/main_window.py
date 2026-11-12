@@ -10,8 +10,11 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QDialog,
     QShortcut,
+    QLabel,
+    QComboBox,
 )
 from PyQt5.QtGui import QKeySequence
+from PyQt5.QtCore import Qt, QTimer
 import os
 
 # --- Core imports ---
@@ -102,6 +105,25 @@ class MainWindow(QMainWindow):
         # --- Setup UI ---
         self._createMenu()
         self._createCentralWidget()
+        self.image_panel.rectangleDrawRequested.connect(self.rect.click)
+        self._filtered_paths = None
+        self.dataset_panel.fileSelected.connect(self.session_controller.show_file)
+        self.box_filter.currentIndexChanged.connect(self.apply_box_filter)
+        self.session_controller.datasetLoaded.connect(self.reset_box_filter)
+        self.session_controller.datasetLoaded.connect(self.update_image_progress)
+        self.session_controller.fileChanged.connect(self.update_image_progress)
+        self.session_controller.requestLabelRefresh.connect(self.refresh_box_filter)
+        self.update_image_progress()
+
+        self.save_notification = QMessageBox(self)
+        self.save_notification.setWindowTitle("Saved")
+        self.save_notification.setIcon(QMessageBox.Information)
+        self.save_notification.setStandardButtons(QMessageBox.NoButton)
+        self.save_notification.setModal(False)
+        self.save_notification.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.save_notification_timer = QTimer(self)
+        self.save_notification_timer.setSingleShot(True)
+        self.save_notification_timer.timeout.connect(self.save_notification.hide)
 
     # ---------------- Menu ----------------
     def _createMenu(self):
@@ -188,21 +210,126 @@ class MainWindow(QMainWindow):
         remove_label.clicked.connect(self.image_panel.delete_selected_items)
         col1.addWidget(remove_label)
 
+        self.clear_labels_button = QPushButton("Clear All Labels\n(Current Image)")
+        self.clear_labels_button.clicked.connect(
+            self.session_controller.clear_current_labels
+        )
+        self.clear_labels_button.setToolTip(
+            "Clear all annotations on the displayed image. Use Save Labels to save."
+        )
+        col1.addWidget(self.clear_labels_button)
+
+        self.save_button = QPushButton("Save Labels")
+        self.save_button.clicked.connect(self.on_save_clicked)
+
+        for button in (
+            next_btn,
+            prev_btn,
+            self.rect,
+            self.polygon,
+            remove_label,
+            self.clear_labels_button,
+            self.save_button,
+        ):
+            button.setMinimumSize(150, 48)
+            button.setStyleSheet("font-weight: bold; padding: 8px 12px;")
+
         col1.addStretch()
+
         layout.addLayout(col1)
 
         # --- Middle column (image canvas) ---
         col2 = QVBoxLayout()
+        image_info = QHBoxLayout()
+        self.image_progress = QLabel()
+        self.image_progress.setToolTip(
+            "Passed and left count images before and after the current image. "
+            "They do not indicate saved or confirmed reviews."
+        )
+        self.image_progress.setStyleSheet("font-weight: bold; padding: 6px;")
+        image_info.addWidget(self.image_progress)
+        image_info.addStretch()
+        col2.addLayout(image_info)
         col2.addWidget(self.image_panel)
+        self.box_count = QLabel("Bounding boxes: 0")
+        self.box_count.setStyleSheet(
+            "font-weight: bold; font-size: 24px; padding: 10px;"
+        )
+        image_actions = QHBoxLayout()
+        image_actions.addStretch()
+        image_actions.addWidget(self.box_count)
+        image_actions.addWidget(self.save_button)
+        image_actions.addStretch()
+        col2.addLayout(image_actions)
         layout.addLayout(col2, stretch=2)
 
         # --- Right column (class & dataset panels) ---
         col3 = QVBoxLayout()
         col3.addWidget(self.class_panel, 1)
+        col3.addWidget(QLabel("Filter images by bounding boxes:"))
+        self.box_filter = QComboBox()
+        self.box_filter.addItem("All images", None)
+        for count in range(4):
+            self.box_filter.addItem(f"Exactly {count} bounding boxes", count)
+        self.box_filter.addItem("3+ bounding boxes", "3+")
+        self.box_filter.setToolTip("Load your labels first, then select a box count.")
+        col3.addWidget(self.box_filter)
         col3.addWidget(self.dataset_panel, 1)
         layout.addLayout(col3)
 
     # ---------------- Slots ----------------
+    def reset_box_filter(self) -> None:
+        self.box_filter.blockSignals(True)
+        self.box_filter.setCurrentIndex(0)
+        self.box_filter.blockSignals(False)
+        self.session_controller.box_count_filter = None
+        self._filtered_paths = None
+
+    def apply_box_filter(self) -> None:
+        self.session_controller.box_count_filter = self.box_filter.currentData()
+        indices = self.session_controller.visible_file_indices()
+        if indices and self.session.current_index not in indices:
+            file_path = self.session.files[indices[0]]["path"]
+            self.session_controller.show_file(file_path)
+        else:
+            self.refresh_box_filter()
+
+    def refresh_box_filter(self, labels: Optional[list] = None) -> None:
+        indices = self.session_controller.visible_file_indices()
+        files = [self.session.files[index] for index in indices]
+        paths = tuple(file["path"] for file in files)
+        if paths != self._filtered_paths:
+            self.dataset_panel.refresh_file_list(files)
+            self._filtered_paths = paths
+        self.update_image_progress()
+
+    def update_image_progress(self) -> None:
+        indices = self.session_controller.visible_file_indices()
+        total = len(indices)
+        position = (
+            indices.index(self.session.current_index) + 1
+            if self.session.current_index in indices
+            else 0
+        )
+        passed = max(0, position - 1)
+        self.image_progress.setText(
+            f"Image {position} / {total}   |   Passed: {passed}   |   Left: {total - position}"
+        )
+        if self.session.files and not position:
+            self.image_progress.setText(
+                f"Matching images: {total} | Current image does not match filter"
+            )
+        labels = []
+        if self.session.files:
+            image_path = self.session.files[self.session.current_index]["path"]
+            labels = self.label_service.labels.get(image_path, [])
+        self.update_box_count(labels)
+        self.clear_labels_button.setEnabled(bool(self.session.files))
+
+    def update_box_count(self, labels: list) -> None:
+        count = sum(label.get("type") == "rect" for label in labels)
+        self.box_count.setText(f"Bounding boxes: {count}")
+
     def draw_label(self) -> None:
         """Trigger label drawing based on current mode."""
         self.image_panel.draw_label(self.session.label_mode, self.session.current_class)
@@ -246,7 +373,9 @@ class MainWindow(QMainWindow):
         if path_or_error == "error_no_path":
             QMessageBox.warning(self, "Error", "No save path selected.")
         else:
-            QMessageBox.information(self, "Saved", f"Files saved to: {path_or_error}")
+            self.save_notification.setText(f"Files saved to: {path_or_error}")
+            self.save_notification.show()
+            self.save_notification_timer.start(1000)
 
     def on_open_file_clicked(self) -> None:
         """Open a single image file."""

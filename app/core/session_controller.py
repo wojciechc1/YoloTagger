@@ -31,6 +31,7 @@ class SessionController(QObject):
         self.model_manager: Any = model_manager
         self.color_manager: Any = color_manager
         self.state: Any = session_state
+        self.box_count_filter: Optional[int | str] = None
 
     # --- Save labels ---
     def save(self, path: Optional[str] = None, fmt: Optional[str] = None) -> None:
@@ -89,21 +90,48 @@ class SessionController(QObject):
         logger.info("Loaded labels for %d images", len(mapped_labels))
 
     # --- File navigation ---
+    def visible_file_indices(self) -> list[int]:
+        if self.box_count_filter is None:
+            return list(range(len(self.state.files)))
+        indices = []
+        for index, file in enumerate(self.state.files):
+            count = sum(
+                label.get("type") == "rect"
+                for label in self.label_manager.labels.get(file["path"], [])
+            )
+            if self.box_count_filter == "3+":
+                matches = count >= 3
+            else:
+                matches = count == self.box_count_filter
+            if matches:
+                indices.append(index)
+        return indices
+
+    def show_file(self, file_path: str) -> None:
+        for index in self.visible_file_indices():
+            if self.state.files[index]["path"] == file_path:
+                self.state.current_index = index
+                self.fileChanged.emit(file_path)
+                self.requestLabelRefresh.emit(self.label_manager.get_labels(file_path))
+                logger.info(
+                    "Switched to file %d/%d: %s",
+                    index + 1,
+                    len(self.state.files),
+                    file_path,
+                )
+                return
+
     def show_next_file(self) -> None:
-        if self.state.current_index + 1 < len(self.state.files):
-            self.state.current_index += 1
-            next_file = self.state.files[self.state.current_index]["path"]
-            self.fileChanged.emit(next_file)
-            self.requestLabelRefresh.emit(self.label_manager.get_labels(next_file))
-            logger.info("Switched to next file: %s", next_file)
+        for index in self.visible_file_indices():
+            if index > self.state.current_index:
+                self.show_file(self.state.files[index]["path"])
+                return
 
     def show_prev_file(self) -> None:
-        if self.state.current_index > 0:
-            self.state.current_index -= 1
-            prev_file = self.state.files[self.state.current_index]["path"]
-            self.fileChanged.emit(prev_file)
-            self.requestLabelRefresh.emit(self.label_manager.get_labels(prev_file))
-            logger.info("Switched to previous file: %s", prev_file)
+        for index in reversed(self.visible_file_indices()):
+            if index < self.state.current_index:
+                self.show_file(self.state.files[index]["path"])
+                return
 
     # --- Open file/folder/dataset ---
     def open_file(self, file_path: str) -> None:
@@ -176,6 +204,13 @@ class SessionController(QObject):
         logger.info("Edited class id %d -> %s", class_id, new_class_name)
 
     # --- Label management ---
+    def clear_current_labels(self) -> None:
+        if not self.state.files:
+            return
+        image_path = self.state.files[self.state.current_index]["path"]
+        self.label_manager.clear_labels(image_path)
+        self.requestLabelRefresh.emit([])
+
     def add_label(
         self, file: str, class_name: int, label_type: str, coords: List[Any]
     ) -> None:

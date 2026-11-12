@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
     QGraphicsPixmapItem,
     QGraphicsRectItem,
     QGraphicsPolygonItem,
+    QPushButton,
 )
 from PyQt5.QtGui import QPixmap, QPen, QBrush, QPolygonF, QColor
 from PyQt5.QtCore import Qt, QRectF, QPointF, pyqtSignal
@@ -18,6 +19,7 @@ class ImagePanel(QGraphicsView):
     labelAdded = pyqtSignal(str, int, str, list)  # file, class_id, type, coords
     labelRemoved = pyqtSignal(str, int)  # file, label_id
     labelChanged = pyqtSignal(str, int, list)  # file, label_id, coords
+    rectangleDrawRequested = pyqtSignal()
 
     def __init__(self, color_callback: Callable[[int], QColor]):
         super().__init__()
@@ -45,6 +47,17 @@ class ImagePanel(QGraphicsView):
         self.crosshair_v: Optional[QGraphicsRectItem] = None
 
         self.setMouseTracking(True)
+        self.delete_button = QPushButton("×", self.viewport())
+        self.delete_button.setFixedSize(26, 26)
+        self.delete_button.setToolTip("Remove this label")
+        self.delete_button.setStyleSheet(
+            "background: #b3261e; color: white; font-size: 20px; font-weight: bold;"
+        )
+        self.delete_button.hide()
+        self.delete_button.clicked.connect(self.delete_selected_items)
+        self._scene.selectionChanged.connect(self.update_delete_button)
+        self.horizontalScrollBar().valueChanged.connect(self.update_delete_button)
+        self.verticalScrollBar().valueChanged.connect(self.update_delete_button)
         # self.setDragMode(QGraphicsView.ScrollHandDrag)
 
     # --- Image loading ---
@@ -78,11 +91,47 @@ class ImagePanel(QGraphicsView):
         if 0.1 <= new_zoom <= 10:
             self.scale(factor, factor)
             self.current_zoom = new_zoom
+            self.update_delete_button()
 
     def reset_zoom(self) -> None:
         """Reset zoom to fit image."""
         self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self.current_zoom = 1.0
+        self.update_delete_button()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_delete_button()
+
+    def selected_annotations(self):
+        annotations = []
+        for item in self._scene.selectedItems():
+            while item is not None and not isinstance(item, (RectItem, PolygonItem)):
+                item = item.parentItem()
+            if item is not None and item not in annotations:
+                annotations.append(item)
+        return annotations
+
+    def update_delete_button(self):
+        annotations = self.selected_annotations()
+        if len(annotations) != 1:
+            self.delete_button.hide()
+            return
+        corner = self.mapFromScene(annotations[0].sceneBoundingRect().topRight())
+        self.delete_button.move(
+            max(
+                0, min(corner.x(), self.viewport().width() - self.delete_button.width())
+            ),
+            max(
+                0,
+                min(
+                    corner.y() - self.delete_button.height(),
+                    self.viewport().height() - self.delete_button.height(),
+                ),
+            ),
+        )
+        self.delete_button.show()
+        self.delete_button.raise_()
 
     # --- State reset ---
     def reset_drawing_state(self) -> None:
@@ -116,6 +165,25 @@ class ImagePanel(QGraphicsView):
         self.selected_class = selected_class
 
     # --- Mouse events ---
+    def mouseDoubleClickEvent(self, event):
+        if not self.is_drawing and event.button() == Qt.LeftButton:
+            item = self.itemAt(event.pos())
+            while item is not None and not isinstance(item, (RectItem, PolygonItem)):
+                item = item.parentItem()
+            if item is not None:
+                file_path, label_id = item.file_path, item.label_id
+                self._scene.removeItem(item)
+                self.labelRemoved.emit(file_path, label_id)
+                event.accept()
+                return
+            if self.pixmap_item is not None and self.img_rect.contains(
+                self.mapToScene(event.pos())
+            ):
+                self.rectangleDrawRequested.emit()
+                event.accept()
+                return
+        super().mouseDoubleClickEvent(event)
+
     def mousePressEvent(self, event):
         if not self.is_drawing:
             super().mousePressEvent(event)
@@ -197,6 +265,7 @@ class ImagePanel(QGraphicsView):
             self.is_drawing
             and self.label_type == "rect"
             and self.selected_class is not None
+            and self.temp_rect is not None
         ):
             if event.button() == Qt.LeftButton:
                 pos = self.mapToScene(event.pos())
@@ -248,10 +317,12 @@ class ImagePanel(QGraphicsView):
 
     def delete_selected_items(self):
         """Delete selected annotations from scene."""
-        for item in self._scene.selectedItems():
-            if isinstance(item, (RectItem, PolygonItem)):
-                self.labelRemoved.emit(item.file_path, item.label_id)
-                self._scene.removeItem(item)
+        annotations = self.selected_annotations()
+        targets = [(item.file_path, item.label_id) for item in annotations]
+        for item in annotations:
+            self._scene.removeItem(item)
+        for file_path, label_id in targets:
+            self.labelRemoved.emit(file_path, label_id)
 
     # --- Crosshair helper ---
     def clear_crosshair(self):
