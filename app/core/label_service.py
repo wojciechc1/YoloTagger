@@ -122,7 +122,9 @@ class LabelService:
         return max([label["id"] for label in labels_for_img], default=-1) + 1
 
     def set_labels(self, img_path: str, label_data: List[Dict[str, Any]]) -> None:
-        self.labels[img_path] = label_data
+        self.labels[img_path] = [
+            dict(label, id=label_id) for label_id, label in enumerate(label_data)
+        ]
 
     def ensure_entry(self, img_path: str) -> None:
         if img_path not in self.labels:

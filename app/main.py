@@ -1,8 +1,9 @@
 # main.py
+import os
 import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QPalette, QColor
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QLibraryInfo
 
 
 from app.gui.main_window import MainWindow
@@ -18,6 +19,12 @@ logging.basicConfig(
 
 def main():
     """App entry point."""
+    if "/cv2/qt/" in os.environ.get("QT_QPA_PLATFORM_PLUGIN_PATH", ""):
+        os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = QLibraryInfo.location(
+            QLibraryInfo.PluginsPath
+        )
+    if "/cv2/qt/" in os.environ.get("QT_QPA_FONTDIR", ""):
+        os.environ.pop("QT_QPA_FONTDIR")
     app = QApplication(sys.argv)
 
     # --- Dark theme palette ---
